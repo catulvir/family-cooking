@@ -92,6 +92,7 @@ Run the frontend checks from `frontend/`:
 
 ```powershell
 npm ci
+npm run format:check
 npm run lint
 npm test -- --run
 npm run build

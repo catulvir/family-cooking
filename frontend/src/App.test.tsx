@@ -8,10 +8,7 @@ afterEach(() => {
 
 describe('App', () => {
   it('identifies the application and shows the sign-in form without a session', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }),
-    )
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }))
 
     render(<App />)
 
@@ -22,10 +19,16 @@ describe('App', () => {
   it('keeps the signed-in view when logout fails', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn()
+      vi
+        .fn()
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ email: 'member@example.com', role: 'MEMBER', status: 'ACTIVE', mustChangePassword: false }),
+          json: async () => ({
+            email: 'member@example.com',
+            role: 'MEMBER',
+            status: 'ACTIVE',
+            mustChangePassword: false,
+          }),
         })
         .mockResolvedValueOnce({ ok: true, json: async () => ({ token: 'csrf-token' }) })
         .mockResolvedValueOnce({ ok: false, status: 500 }),

@@ -15,12 +15,14 @@ export interface ManagedUser {
   mustChangePassword: boolean
 }
 
-export interface CreatedUser extends ManagedUser { temporaryPassword: string }
+export interface CreatedUser extends ManagedUser {
+  temporaryPassword: string
+}
 
 async function csrfHeaders(): Promise<HeadersInit> {
   const response = await fetch(`${apiOrigin}/api/v1/auth/csrf`, { credentials: 'include' })
   if (!response.ok) throw new Error('Could not prepare a secure request.')
-  const { token } = await response.json() as { token: string }
+  const { token } = (await response.json()) as { token: string }
   return { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': token }
 }
 
@@ -38,9 +40,25 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export const authApi = {
   currentUser: () => request<CurrentUser>('/api/v1/auth/me'),
-  login: async (email: string, password: string) => request<CurrentUser>('/api/v1/auth/login', { method: 'POST', headers: await csrfHeaders(), body: JSON.stringify({ email, password }) }),
-  changePassword: async (currentPassword: string, newPassword: string) => request<CurrentUser>('/api/v1/auth/change-password', { method: 'POST', headers: await csrfHeaders(), body: JSON.stringify({ currentPassword, newPassword }) }),
-  logout: async () => request<void>('/api/v1/auth/logout', { method: 'POST', headers: await csrfHeaders() }),
+  login: async (email: string, password: string) =>
+    request<CurrentUser>('/api/v1/auth/login', {
+      method: 'POST',
+      headers: await csrfHeaders(),
+      body: JSON.stringify({ email, password }),
+    }),
+  changePassword: async (currentPassword: string, newPassword: string) =>
+    request<CurrentUser>('/api/v1/auth/change-password', {
+      method: 'POST',
+      headers: await csrfHeaders(),
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+  logout: async () =>
+    request<void>('/api/v1/auth/logout', { method: 'POST', headers: await csrfHeaders() }),
   users: () => request<ManagedUser[]>('/api/v1/admin/users'),
-  createUser: async (email: string, role: 'ADMIN' | 'MEMBER') => request<CreatedUser>('/api/v1/admin/users', { method: 'POST', headers: await csrfHeaders(), body: JSON.stringify({ email, role }) }),
+  createUser: async (email: string, role: 'ADMIN' | 'MEMBER') =>
+    request<CreatedUser>('/api/v1/admin/users', {
+      method: 'POST',
+      headers: await csrfHeaders(),
+      body: JSON.stringify({ email, role }),
+    }),
 }
