@@ -1,12 +1,14 @@
 package com.familycooking.tracker.auth
 
-import com.familycooking.tracker.users.AppUserRepository
+import com.familycooking.tracker.auth.api.ChangePasswordRequest
+import com.familycooking.tracker.auth.api.CurrentUserResponse
+import com.familycooking.tracker.auth.api.LoginRequest
+import com.familycooking.tracker.auth.api.toCurrentUserResponse
+import com.familycooking.tracker.users.ChangePasswordResult
+import com.familycooking.tracker.users.UserAccountService
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
-import jakarta.validation.constraints.Email
-import jakarta.validation.constraints.NotBlank
-import jakarta.validation.constraints.Size
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
@@ -20,15 +22,10 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
-data class LoginRequest(@field:Email val email: String, @field:NotBlank val password: String)
-data class ChangePasswordRequest(@field:NotBlank val currentPassword: String, @field:Size(min = 12, max = 128) val newPassword: String)
-data class CurrentUserResponse(val email: String, val role: String, val status: String, val mustChangePassword: Boolean)
-
 @RestController
 @RequestMapping("/api/v1/auth")
 class AuthController(
-    private val authService: AuthService,
-    private val userRepository: AppUserRepository,
+    private val userAccountService: UserAccountService,
     private val securityContextRepository: HttpSessionSecurityContextRepository,
 ) {
     @PostMapping("/login")
@@ -37,7 +34,7 @@ class AuthController(
         request: HttpServletRequest,
         response: HttpServletResponse,
     ): ResponseEntity<CurrentUserResponse> {
-        val user = authService.authenticate(requestBody.email, requestBody.password)
+        val user = userAccountService.authenticate(requestBody.email, requestBody.password)
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
 
         request.getSession(true)
@@ -48,20 +45,19 @@ class AuthController(
         }
         SecurityContextHolder.setContext(context)
         securityContextRepository.saveContext(context, request, response)
-        return ResponseEntity.ok(user.toResponse())
+        return ResponseEntity.ok(user.toCurrentUserResponse())
     }
 
     @PostMapping("/change-password")
     fun changePassword(@Valid @RequestBody requestBody: ChangePasswordRequest): ResponseEntity<CurrentUserResponse> {
         val principal = SecurityContextHolder.getContext().authentication?.principal as? AppUserPrincipal
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        val user = userRepository.findById(principal.id).orElse(null)
-            ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        val passwordHash = user.passwordHash
-        if (passwordHash == null || !authService.passwordMatches(requestBody.currentPassword, passwordHash)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build()
+
+        return when (val result = userAccountService.changePassword(principal.id, requestBody.currentPassword, requestBody.newPassword)) {
+            ChangePasswordResult.UserNotFound -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+            ChangePasswordResult.InvalidCurrentPassword -> ResponseEntity.status(HttpStatus.BAD_REQUEST).build()
+            is ChangePasswordResult.Changed -> ResponseEntity.ok(result.user.toCurrentUserResponse())
         }
-        return ResponseEntity.ok(authService.changePassword(user, requestBody.newPassword).toResponse())
     }
 
     @GetMapping("/csrf")
@@ -71,22 +67,15 @@ class AuthController(
     fun me(): ResponseEntity<CurrentUserResponse> {
         val principal = SecurityContextHolder.getContext().authentication?.principal as? AppUserPrincipal
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        val user = userRepository.findById(principal.id).orElse(null)
+        val user = userAccountService.findUser(principal.id)
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        return ResponseEntity.ok(user.toResponse())
+        return ResponseEntity.ok(user.toCurrentUserResponse())
     }
 
     @PostMapping("/logout")
     fun logout(request: HttpServletRequest): ResponseEntity<Void> {
-        request.session?.invalidate()
+        request.getSession(false)?.invalidate()
         SecurityContextHolder.clearContext()
         return ResponseEntity.noContent().build()
     }
-
-    private fun com.familycooking.tracker.users.AppUser.toResponse() = CurrentUserResponse(
-        email = email,
-        role = role.name,
-        status = status.name,
-        mustChangePassword = mustChangePassword,
-    )
 }
