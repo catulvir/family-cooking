@@ -39,13 +39,15 @@ Future domain modules will keep dishes independent from recipes and reviews. In 
 
 ## Run locally
 
-1. Create a local environment file from the example:
+1. Create the backend and database environment file from the example:
 
    ```powershell
    Copy-Item .env.example .env
    ```
 
 2. Replace `POSTGRES_PASSWORD` and `DB_PASSWORD` in `.env` with the same local password.
+
+   To override the Vite development API origin, copy `frontend/.env.example` to `frontend/.env.local` and set `VITE_API_BASE_URL` there. The default is `http://localhost:8080`.
 
 3. Start PostgreSQL:
 
@@ -106,7 +108,7 @@ Add PostgreSQL migrations under `backend/src/main/resources/db/migration` using 
 | `DATABASE_URL` | JDBC PostgreSQL URL; takes precedence over the separate database values |
 | `DB_HOST`, `DB_PORT`, `DB_NAME` | PostgreSQL connection parts when `DATABASE_URL` is unset |
 | `DB_USERNAME`, `DB_PASSWORD` | PostgreSQL credentials |
-| `VITE_API_BASE_URL` | Development API origin used by the Vite proxy |
+| `VITE_API_BASE_URL` | Development API origin used by the Vite proxy; configure it in `frontend/.env.local` |
 
 `.env` is ignored by Git. Keep actual passwords and deployment secrets out of the repository.
 
