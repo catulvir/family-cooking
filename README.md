@@ -125,7 +125,7 @@ npm --prefix frontend ci && npm --prefix frontend run build && cd backend && bas
 
 The backend Maven build includes `frontend/dist` in the packaged Spring Boot JAR when that directory exists, so the resulting service serves the React build and API from one origin. Configure Render to start it with `java -jar backend/target/family-cooking-api-0.0.1-SNAPSHOT.jar`, supply a Render PostgreSQL connection as `DATABASE_URL` in JDBC form, and set `PORT` if Render requires it.
 
-For separate Render services, deploy `frontend/` as a Static Site with `npm ci && npm run build` and publish `dist`. Set its build-time `VITE_API_BASE_URL` to the API's public HTTPS URL. Deploy `backend/` as a Web Service with `bash ./mvnw --batch-mode package` and start it with `java -jar target/family-cooking-api-0.0.1-SNAPSHOT.jar`. Wire the managed database's host, port, database, user, and password into `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, and `DB_PASSWORD`; set `CORS_ALLOWED_ORIGINS` to the static site's exact HTTPS origin. A real Render deployment has not been performed.
+For separate Render services, deploy `frontend/` as a Static Site with `npm ci && npm run build` and publish `dist`. Set its build-time `VITE_API_BASE_URL` to the API's public HTTPS URL. Deploy `backend/` as a Docker Web Service with `backend/` as its root directory; its `Dockerfile` builds and starts the API. Wire the managed database's host, port, database, user, and password into `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, and `DB_PASSWORD`; set `CORS_ALLOWED_ORIGINS` to the static site's exact HTTPS origin. A real Render deployment has not been performed.
 
 ## Planned milestones
 
