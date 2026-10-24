@@ -109,6 +109,7 @@ Add PostgreSQL migrations under `backend/src/main/resources/db/migration` using 
 | `DB_HOST`, `DB_PORT`, `DB_NAME` | PostgreSQL connection parts when `DATABASE_URL` is unset |
 | `DB_USERNAME`, `DB_PASSWORD` | PostgreSQL credentials |
 | `VITE_API_BASE_URL` | Development API origin used by the Vite proxy; configure it in `frontend/.env.local` |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated browser origins allowed to call the API; set this to the deployed frontend URL on Render |
 
 `.env` is ignored by Git. Keep actual passwords and deployment secrets out of the repository.
 
@@ -116,13 +117,15 @@ Add PostgreSQL migrations under `backend/src/main/resources/db/migration` using 
 
 The backend supports a Render-managed PostgreSQL instance through `DATABASE_URL` (in JDBC URL form) or the individual `DB_*` variables. It uses forwarded-header support for a reverse proxy and exposes only the unauthenticated health checks. Persisted photos will later use private object storage; the application will not depend on the Render filesystem for uploads.
 
-The frontend is separate only during development. For a same-origin Render deployment, use this build command from the repository root:
+For a same-origin Render deployment, use this build command from the repository root:
 
 ```sh
-npm --prefix frontend ci && npm --prefix frontend run build && cd backend && ./mvnw --batch-mode package
+npm --prefix frontend ci && npm --prefix frontend run build && cd backend && bash ./mvnw --batch-mode package
 ```
 
-The backend Maven build includes `frontend/dist` in the packaged Spring Boot JAR when that directory exists, so the resulting service serves the React build and API from one origin. Configure Render to start it with `java -jar backend/target/family-cooking-api-0.0.1-SNAPSHOT.jar`, supply a Render PostgreSQL connection as `DATABASE_URL` in JDBC form, and set `PORT` if Render requires it. A real Render deployment has not been performed.
+The backend Maven build includes `frontend/dist` in the packaged Spring Boot JAR when that directory exists, so the resulting service serves the React build and API from one origin. Configure Render to start it with `java -jar backend/target/family-cooking-api-0.0.1-SNAPSHOT.jar`, supply a Render PostgreSQL connection as `DATABASE_URL` in JDBC form, and set `PORT` if Render requires it.
+
+For separate Render services, deploy `frontend/` as a Static Site with `npm ci && npm run build` and publish `dist`. Set its build-time `VITE_API_BASE_URL` to the API's public HTTPS URL. Deploy `backend/` as a Web Service with `bash ./mvnw --batch-mode package` and start it with `java -jar target/family-cooking-api-0.0.1-SNAPSHOT.jar`. Wire the managed database's host, port, database, user, and password into `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, and `DB_PASSWORD`; set `CORS_ALLOWED_ORIGINS` to the static site's exact HTTPS origin. A real Render deployment has not been performed.
 
 ## Planned milestones
 

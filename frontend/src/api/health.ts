@@ -4,8 +4,10 @@ export interface HealthResponse {
   status: HealthStatus
 }
 
+const apiOrigin = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ?? ''
+
 export async function getHealth(): Promise<HealthResponse> {
-  const response = await fetch('/api/v1/health', {
+  const response = await fetch(`${apiOrigin}/api/v1/health`, {
     headers: { Accept: 'application/json' },
   })
 
