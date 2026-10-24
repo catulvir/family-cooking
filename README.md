@@ -113,6 +113,7 @@ Add PostgreSQL migrations under `backend/src/main/resources/db/migration` using 
 | `BOOTSTRAP_ADMIN_EMAIL` | Initial administrator email; defaults to `rozbergs@gmail.com` |
 | `BOOTSTRAP_ADMIN_PASSWORD` | One-time initial administrator password; leave blank after the account exists |
 | `SESSION_COOKIE_SECURE` | Set to `true` in HTTPS production; use `false` only for local HTTP development |
+| `SESSION_COOKIE_SAME_SITE` | `lax` for same-site deployment; set `none` with `SESSION_COOKIE_SECURE=true` for separate frontend and API origins |
 | `VITE_API_BASE_URL` | Development API origin used by the Vite proxy; configure it in `frontend/.env.local` |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated browser origins allowed to call the API; set this to the deployed frontend URL on Render |
 
@@ -136,7 +137,7 @@ npm --prefix frontend ci && npm --prefix frontend run build && cd backend && bas
 
 The backend Maven build includes `frontend/dist` in the packaged Spring Boot JAR when that directory exists, so the resulting service serves the React build and API from one origin. Configure Render to start it with `java -jar backend/target/family-cooking-api-0.0.1-SNAPSHOT.jar`, supply a Render PostgreSQL connection as `DATABASE_URL` in JDBC form, and set `PORT` if Render requires it.
 
-For separate Render services, deploy `frontend/` as a Static Site with `npm ci && npm run build` and publish `dist`. Set its build-time `VITE_API_BASE_URL` to the API's public HTTPS URL. Deploy `backend/` as a Docker Web Service with `backend/` as its root directory; its `Dockerfile` builds and starts the API. Set `CORS_ALLOWED_ORIGINS` to the static site's exact HTTPS origin.
+For separate Render services, deploy `frontend/` as a Static Site with `npm ci && npm run build` and publish `dist`. Set its build-time `VITE_API_BASE_URL` to the API's public HTTPS URL. Deploy `backend/` as a Docker Web Service with `backend/` as its root directory; its `Dockerfile` builds and starts the API. Set `CORS_ALLOWED_ORIGINS` to the static site's exact HTTPS origin, `SESSION_COOKIE_SAME_SITE=none`, and `SESSION_COOKIE_SECURE=true`. This permits credentialed cross-origin requests; browser privacy settings that block all third-party cookies remain incompatible with a separate-origin cookie session.
 
 ### Supabase PostgreSQL (recommended)
 

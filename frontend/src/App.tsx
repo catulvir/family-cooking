@@ -97,10 +97,12 @@ function Dashboard({user, onLogout, setError}: {
         if (user.role === 'ADMIN') authApi.users().then(setUsers).catch((reason) => setError(messageFrom(reason)))
     }, [user.role, setError])
     const logout = async () => {
+        setError('')
         try {
             await authApi.logout()
-        } finally {
             onLogout()
+        } catch (reason) {
+            setError(messageFrom(reason))
         }
     }
     return <div className="dashboard">
