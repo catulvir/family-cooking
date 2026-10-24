@@ -1,0 +1,41 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["import", "react", "jsx-a11y", "vitest"],
+  "env": {
+    "browser": true,
+    "es2022": true
+  },
+  "settings": {
+    "react": {
+      "version": "19.1"
+    }
+  },
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "eqeqeq": "error",
+    "no-unused-vars": "error",
+    "import/no-unassigned-import": "off",
+    "import/no-cycle": "error",
+    "import/no-duplicates": "error",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn",
+    "react/jsx-key": "error",
+    "react/react-in-jsx-scope": "off",
+    "react/no-direct-mutation-state": "error",
+    "react/no-unknown-property": "error",
+    "jsx-a11y/alt-text": "error",
+    "jsx-a11y/anchor-has-content": "error",
+    "jsx-a11y/click-events-have-key-events": "error"
+  },
+  "overrides": [
+    {
+      "files": ["*.test.ts", "*.test.tsx"],
+      "env": {
+        "vitest-globals/env": true
+      }
+    }
+  ]
+}
