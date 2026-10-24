@@ -23,7 +23,7 @@ async function csrfHeaders(): Promise<HeadersInit> {
   const response = await fetch(`${apiOrigin}/api/v1/auth/csrf`, { credentials: 'include' })
   if (!response.ok) throw new Error('Could not prepare a secure request.')
   const { token } = (await response.json()) as { token: string }
-  return { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': token }
+  return { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token }
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {

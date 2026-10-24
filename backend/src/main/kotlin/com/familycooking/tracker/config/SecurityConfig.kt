@@ -46,7 +46,7 @@ class SecurityConfig(private val accountStatusFilter: com.familycooking.tracker.
         val configuration = CorsConfiguration().apply {
             allowedOrigins = allowedOriginValues.split(',').map(String::trim).filter(String::isNotEmpty)
             allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-            allowedHeaders = listOf("Authorization", "Content-Type", "Accept", "X-XSRF-TOKEN")
+            allowedHeaders = listOf("Authorization", "Content-Type", "Accept", "X-CSRF-TOKEN")
             allowCredentials = true
         }
 
