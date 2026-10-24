@@ -57,7 +57,8 @@ class AuthController(
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         val user = userRepository.findById(principal.id).orElse(null)
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        if (user.passwordHash == null || !authService.passwordMatches(requestBody.currentPassword, user.passwordHash)) {
+        val passwordHash = user.passwordHash
+        if (passwordHash == null || !authService.passwordMatches(requestBody.currentPassword, passwordHash)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build()
         }
         return ResponseEntity.ok(authService.changePassword(user, requestBody.newPassword).toResponse())

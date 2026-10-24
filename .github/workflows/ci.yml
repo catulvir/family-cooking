@@ -42,7 +42,9 @@ jobs:
           java-version: "21"
           cache: maven
       - name: Test and build backend
-        run: bash ./mvnw --batch-mode verify
+        # GitHub's Ubuntu runners include Maven. Using it avoids a separate
+        # Maven Wrapper distribution download before the build can begin.
+        run: mvn --batch-mode verify
 
   frontend:
     runs-on: ubuntu-latest
