@@ -30,6 +30,7 @@ describe('App', () => {
             mustChangePassword: false,
           }),
         })
+        .mockResolvedValueOnce({ ok: true, json: async () => [] })
         .mockResolvedValueOnce({ ok: true, json: async () => ({ token: 'csrf-token' }) })
         .mockResolvedValueOnce({ ok: false, status: 500 }),
     )

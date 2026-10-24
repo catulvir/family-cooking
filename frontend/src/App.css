@@ -81,12 +81,18 @@ button {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   padding: 0.65rem 0.75rem;
   border: 1px solid #bdb5a5;
   border-radius: 0.5rem;
   background: white;
+}
+
+textarea {
+  min-height: 7rem;
+  resize: vertical;
 }
 
 small {
@@ -130,6 +136,63 @@ button.secondary {
   margin-top: 2rem;
   border-top: 1px solid #dfd7c6;
   padding-top: 1.5rem;
+}
+
+.journal {
+  margin-top: 2rem;
+  border-top: 1px solid #dfd7c6;
+  padding-top: 1.5rem;
+}
+
+.section-row,
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dish-list {
+  display: grid;
+  gap: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dish-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid #eee9dd;
+  padding: 0.75rem 0;
+}
+
+button.dish-link {
+  padding: 0;
+  background: transparent;
+  color: #254e37;
+  text-align: left;
+}
+
+.dish-list time {
+  color: #59635a;
+  font-size: 0.9rem;
+}
+
+.dish-detail h2,
+.dish-form h2 {
+  margin-bottom: 0;
+}
+
+.notes {
+  white-space: pre-wrap;
+}
+
+.field-error,
+.journal-error p {
+  margin: -0.5rem 0 0;
+  color: #9f3c2e;
 }
 
 h2 {

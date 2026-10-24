@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import { authApi, type CreatedUser, type CurrentUser, type ManagedUser } from './api/auth'
+import { dishesApi, DishApiError, type Dish, type DishInput } from './api/dishes'
 import './App.css'
 
 export default function App() {
@@ -182,7 +183,8 @@ function Dashboard({
           Sign out
         </button>
       </div>
-      {user.role === 'ADMIN' ? (
+      <Journal />
+      {user.role === 'ADMIN' && (
         <UserManagement
           users={users}
           setUsers={setUsers}
@@ -190,10 +192,218 @@ function Dashboard({
           setCreatedUser={setCreatedUser}
           setError={setError}
         />
-      ) : (
-        <p>Your cooking journal will appear here in the next milestone.</p>
       )}
     </div>
+  )
+}
+
+type JournalView = { kind: 'list' } | { kind: 'detail'; dish: Dish } | { kind: 'form'; dish?: Dish }
+
+function Journal() {
+  const [dishes, setDishes] = useState<Dish[]>([])
+  const [view, setView] = useState<JournalView>({ kind: 'list' })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const load = () => {
+    setLoading(true)
+    setError('')
+    dishesApi
+      .list()
+      .then(setDishes)
+      .catch((reason) => setError(messageFrom(reason)))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    dishesApi
+      .list()
+      .then(setDishes)
+      .catch((reason) => setError(messageFrom(reason)))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const showDetail = (dish: Dish) => {
+    setView({ kind: 'detail', dish })
+    setError('')
+  }
+  const saved = (dish: Dish) => {
+    setDishes((current) => [dish, ...current.filter((entry) => entry.id !== dish.id)])
+    setView({ kind: 'detail', dish })
+  }
+
+  return (
+    <section className="journal" aria-labelledby="journal-title">
+      {view.kind === 'list' && (
+        <>
+          <div className="section-row">
+            <h2 id="journal-title">Cooking journal</h2>
+            <button onClick={() => setView({ kind: 'form' })}>Add dish</button>
+          </div>
+          {loading ? (
+            <p>Loading dishes…</p>
+          ) : error ? (
+            <div className="journal-error" role="alert">
+              <p>{error}</p>
+              <button className="secondary" onClick={load}>
+                Try again
+              </button>
+            </div>
+          ) : dishes.length === 0 ? (
+            <p>No dishes yet. Record your first family meal.</p>
+          ) : (
+            <ul className="dish-list">
+              {dishes.map((dish) => (
+                <li key={dish.id}>
+                  <button className="dish-link" onClick={() => showDetail(dish)}>
+                    {dish.name}
+                  </button>
+                  <time dateTime={dish.preparedOn}>{formatDate(dish.preparedOn)}</time>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+      {view.kind === 'detail' && (
+        <DishDetail
+          dish={view.dish}
+          onBack={() => setView({ kind: 'list' })}
+          onEdit={() => setView({ kind: 'form', dish: view.dish })}
+        />
+      )}
+      {view.kind === 'form' && (
+        <DishForm
+          dish={view.dish}
+          onCancel={() =>
+            setView(view.dish ? { kind: 'detail', dish: view.dish } : { kind: 'list' })
+          }
+          onSaved={saved}
+        />
+      )}
+    </section>
+  )
+}
+
+function DishDetail({
+  dish,
+  onBack,
+  onEdit,
+}: {
+  dish: Dish
+  onBack: () => void
+  onEdit: () => void
+}) {
+  return (
+    <article className="dish-detail">
+      <button className="secondary" onClick={onBack}>
+        Back to dishes
+      </button>
+      <p className="eyebrow">Prepared {formatDate(dish.preparedOn)}</p>
+      <h2>{dish.name}</h2>
+      {dish.notes && <p className="notes">{dish.notes}</p>}
+      {dish.canEdit && <button onClick={onEdit}>Edit dish</button>}
+    </article>
+  )
+}
+
+function DishForm({
+  dish,
+  onCancel,
+  onSaved,
+}: {
+  dish?: Dish
+  onCancel: () => void
+  onSaved: (dish: Dish) => void
+}) {
+  const [name, setName] = useState(dish?.name ?? '')
+  const [preparedOn, setPreparedOn] = useState(dish?.preparedOn ?? localToday())
+  const [notes, setNotes] = useState(dish?.notes ?? '')
+  const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState(false)
+  const submit = async (event: FormEvent) => {
+    event.preventDefault()
+    const trimmedName = name.trim()
+    if (!trimmedName) {
+      setFieldErrors({ name: 'Enter a dish name.' })
+      return
+    }
+    setSaving(true)
+    setError('')
+    setFieldErrors({})
+    const input: DishInput = { name: trimmedName, preparedOn, notes: notes.trim() || null }
+    try {
+      onSaved(dish ? await dishesApi.update(dish.id, input) : await dishesApi.create(input))
+    } catch (reason) {
+      if (reason instanceof DishApiError) {
+        setError(reason.message)
+        setFieldErrors(reason.fieldErrors)
+      } else setError(messageFrom(reason))
+    } finally {
+      setSaving(false)
+    }
+  }
+  return (
+    <form className="form dish-form" onSubmit={submit} noValidate>
+      <h2>{dish ? 'Edit dish' : 'Record a dish'}</h2>
+      <label>
+        Dish name
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          aria-describedby={fieldErrors.name ? 'dish-name-error' : undefined}
+        />
+      </label>
+      {fieldErrors.name && (
+        <p className="field-error" id="dish-name-error">
+          {fieldErrors.name}
+        </p>
+      )}
+      <label>
+        Preparation date
+        <input
+          type="date"
+          value={preparedOn}
+          onChange={(event) => setPreparedOn(event.target.value)}
+          required
+        />
+      </label>
+      {fieldErrors.preparedOn && <p className="field-error">{fieldErrors.preparedOn}</p>}
+      <label>
+        Preparation notes (optional)
+        <textarea
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+          maxLength={5000}
+        />
+      </label>
+      {fieldErrors.notes && <p className="field-error">{fieldErrors.notes}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="form-actions">
+        <button disabled={saving}>{saving ? 'Saving…' : 'Save dish'}</button>
+        <button type="button" className="secondary" onClick={onCancel} disabled={saving}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function localToday() {
+  const now = new Date()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear()}-${month}-${day}`
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(
+    new Date(`${value}T00:00:00`),
   )
 }
 
