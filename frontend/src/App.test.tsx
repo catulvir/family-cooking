@@ -7,15 +7,15 @@ afterEach(() => {
 })
 
 describe('App', () => {
-  it('identifies the application and reports a successful health check', async () => {
+  it('identifies the application and shows the sign-in form without a session', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ status: 'UP' }) }),
+      vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }),
     )
 
     render(<App />)
 
     expect(screen.getByRole('heading', { name: 'Family Cooking Tracker' })).toBeInTheDocument()
-    expect(await screen.findByText('Service connection is ready.')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Sign in' })).toBeInTheDocument()
   })
 })

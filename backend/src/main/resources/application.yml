@@ -20,6 +20,13 @@ spring:
 server:
   port: ${PORT:8080}
   forward-headers-strategy: framework
+  servlet:
+    session:
+      timeout: 30d
+      cookie:
+        http-only: true
+        secure: ${SESSION_COOKIE_SECURE:false}
+        same-site: lax
 
 management:
   endpoint:
@@ -35,3 +42,6 @@ management:
 app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  bootstrap-admin:
+    email: ${BOOTSTRAP_ADMIN_EMAIL:rozbergs@gmail.com}
+    password: ${BOOTSTRAP_ADMIN_PASSWORD:}
