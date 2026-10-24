@@ -42,7 +42,9 @@ jobs:
           java-version: "21"
           cache: maven
       - name: Test and build backend
-        run: bash ./mvnw --batch-mode verify
+        # GitHub's Ubuntu runners include Maven. Using it avoids a separate
+        # Maven Wrapper distribution download before the build can begin.
+        run: mvn --batch-mode verify
 
   frontend:
     runs-on: ubuntu-latest
@@ -58,6 +60,10 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
         run: npm ci
+      - name: Check frontend formatting
+        run: npm run format:check
+      - name: Lint frontend
+        run: npm run lint
       - name: Run tests
         run: npm test -- --run
       - name: Build frontend
