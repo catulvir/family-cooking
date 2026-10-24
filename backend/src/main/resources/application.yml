@@ -5,6 +5,11 @@ spring:
     url: ${DATABASE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:family_cooking}}
     username: ${DB_USERNAME:family_cooking}
     password: ${DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+      minimum-idle: 0
+      data-source-properties:
+        sslmode: ${DB_SSL_MODE:prefer}
   jpa:
     hibernate:
       ddl-auto: validate
