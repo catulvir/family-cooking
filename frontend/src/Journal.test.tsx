@@ -50,8 +50,14 @@ beforeEach(() => {
             saveFailure,
           )
         const body = JSON.parse(init.body as string)
-        const saved = { ...soup, ...body }
-        records = [saved]
+        const existing =
+          init.method === 'PUT'
+            ? records.find((dish) => dish.id === path.split('/').at(-1))
+            : undefined
+        const saved = { ...(existing ?? soup), ...body }
+        records = existing
+          ? records.map((dish) => (dish.id === saved.id ? saved : dish))
+          : [saved, ...records]
         return respond(saved, init.method === 'POST' ? 201 : 200)
       }
       if (path.startsWith('/api/v1/dishes/')) return respond(records[0])
@@ -105,6 +111,31 @@ describe('family cooking journal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Back to dishes' }))
     expect(await screen.findByRole('button', { name: 'Carrot soup' })).toBeInTheDocument()
     expect(records[0].notes).toBeNull()
+  })
+
+  it('keeps the server ordering after saving an older dish', async () => {
+    records = [
+      { ...soup, id: 'newer-dish', name: 'Today soup', preparedOn: '2026-10-24' },
+      { ...soup, id: 'older-dish', name: 'Yesterday soup', preparedOn: '2026-10-23' },
+    ]
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Yesterday soup' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit dish' }))
+    fireEvent.change(screen.getByLabelText('Dish name'), {
+      target: { value: 'Updated yesterday soup' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save dish' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Back to dishes' }))
+
+    expect(
+      screen
+        .getAllByRole('button')
+        .filter((button) =>
+          ['Today soup', 'Updated yesterday soup'].includes(button.textContent ?? ''),
+        )
+        .map((button) => button.textContent),
+    ).toEqual(['Today soup', 'Updated yesterday soup'])
   })
 
   it('hides editing when the server denies permission', async () => {

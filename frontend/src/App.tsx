@@ -228,7 +228,9 @@ function Journal() {
     setError('')
   }
   const saved = (dish: Dish) => {
-    setDishes((current) => [dish, ...current.filter((entry) => entry.id !== dish.id)])
+    setDishes((current) =>
+      [...current.filter((entry) => entry.id !== dish.id), dish].sort(compareDishes),
+    )
     setView({ kind: 'detail', dish })
   }
 
@@ -283,6 +285,17 @@ function Journal() {
       )}
     </section>
   )
+}
+
+function compareDishes(left: Dish, right: Dish) {
+  const preparedOnComparison = right.preparedOn.localeCompare(left.preparedOn)
+  if (preparedOnComparison !== 0) return preparedOnComparison
+
+  const createdAtComparison =
+    new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+  if (createdAtComparison !== 0) return createdAtComparison
+
+  return right.id.localeCompare(left.id)
 }
 
 function DishDetail({
