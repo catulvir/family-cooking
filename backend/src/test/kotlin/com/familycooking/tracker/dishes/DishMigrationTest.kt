@@ -24,7 +24,7 @@ class DishMigrationTest : PostgresTestSupport() {
             }
         }
         val upgraded = Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema).load()
-        assertEquals(1, upgraded.migrate().migrationsExecuted)
+        assertEquals(2, upgraded.migrate().migrationsExecuted)
         upgraded.validate()
         dataSource.connection.use { connection ->
             connection.createStatement().use { statement ->
@@ -36,6 +36,15 @@ class DishMigrationTest : PostgresTestSupport() {
                 statement.executeQuery("SELECT count(*) FROM $schema.dishes").use { result ->
                     check(result.next())
                     assertEquals(0, result.getInt(1))
+                }
+                statement.executeQuery("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.columns
+                        WHERE table_schema = '$schema' AND table_name = 'dishes' AND column_name = 'location'
+                    )
+                """.trimIndent()).use { result ->
+                    check(result.next())
+                    assertEquals(true, result.getBoolean(1))
                 }
             }
         }

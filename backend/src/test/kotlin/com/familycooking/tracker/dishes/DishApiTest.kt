@@ -51,7 +51,7 @@ class DishApiTest : PostgresTestSupport() {
             mvc.put("/api/v1/dishes/${dish.id}") {
                 with(user(AppUserPrincipal.from(account))); with(csrf())
                 contentType = MediaType.APPLICATION_JSON
-                content = """{"name":"Updated soup","preparedOn":"2026-10-23","notes":"Shared notes"}"""
+                content = """{"name":"Updated soup","preparedOn":"2026-10-23","location":"Chez Alice","notes":"Shared notes"}"""
             }.andExpect { status { if (canEdit) isOk() else isForbidden() } }
         }
     }
@@ -61,10 +61,11 @@ class DishApiTest : PostgresTestSupport() {
         mvc.post("/api/v1/dishes") {
             with(user(AppUserPrincipal.from(owner))); with(csrf())
             contentType = MediaType.APPLICATION_JSON
-            content = """{"name":"  Soup  ","preparedOn":"2026-10-24","createdBy":"${other.id}"}"""
+            content = """{"name":"  Soup  ","preparedOn":"2026-10-24","location":"  At home  ","createdBy":"${other.id}"}"""
         }.andExpect {
             status { isCreated() }
             jsonPath("$.name") { value("Soup") }
+            jsonPath("$.location") { value("At home") }
             jsonPath("$.createdBy") { value(owner.id.toString()) }
             jsonPath("$.canEdit") { value(true) }
             header { exists("Location") }
@@ -77,6 +78,7 @@ class DishApiTest : PostgresTestSupport() {
             """{"name":"   ","preparedOn":"2026-10-24"}""",
             """{"name":"${"a".repeat(201)}","preparedOn":"2026-10-24"}""",
             """{"name":"Soup","preparedOn":"2026-10-24","notes":"${"a".repeat(5001)}"}""",
+            """{"name":"Soup","preparedOn":"2026-10-24","location":"${"a".repeat(201)}"}""",
             """{"name":"Soup"}""",
             """{"name":"Soup","preparedOn":"not-a-date"}""",
             """{"name":null,"preparedOn":"2026-10-24"}""",
@@ -150,7 +152,7 @@ class DishApiTest : PostgresTestSupport() {
         mvc.put("/api/v1/dishes/${dish.id}") {
             with(user(AppUserPrincipal.from(admin))); with(csrf())
             contentType = MediaType.APPLICATION_JSON
-            content = """{"name":"  ${"a".repeat(200)}  ","preparedOn":"2026-10-22","notes":"${"n".repeat(5000)}","createdBy":"${admin.id}"}"""
+            content = """{"name":"  ${"a".repeat(200)}  ","preparedOn":"2026-10-22","location":"${"l".repeat(200)}","notes":"${"n".repeat(5000)}","createdBy":"${admin.id}"}"""
         }.andExpect { status { isOk() } }
         val updated = dishes.findById(dish.id).orElseThrow()
         assertEquals(owner.id, updated.createdBy)
@@ -158,11 +160,13 @@ class DishApiTest : PostgresTestSupport() {
         assertTrue(updated.updatedAt.isAfter(before.updatedAt))
         assertEquals(200, updated.name.length)
         assertEquals(5000, updated.notes?.length)
+        assertEquals(200, updated.location?.length)
         mvc.put("/api/v1/dishes/${dish.id}") {
             with(user(AppUserPrincipal.from(owner))); with(csrf())
             contentType = MediaType.APPLICATION_JSON
             content = """{"name":"Soup","preparedOn":"2026-10-24"}"""
         }.andExpect { status { isOk() } }
         assertNull(dishes.findById(dish.id).orElseThrow().notes)
+        assertNull(dishes.findById(dish.id).orElseThrow().location)
     }
 }

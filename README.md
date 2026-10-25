@@ -1,14 +1,14 @@
 # Family Cooking Tracker
 
-Private, family-only web application for recording prepared dishes and, in later milestones, reusable recipes, ingredients, reviews, and protected photos.
+Private, family-only web application for recording family meals and notable food experiences, with later support for reusable recipes, ingredients, reviews, and protected photos.
 
 ## Current milestone
 
 Milestone 3 adds the family cooking journal on top of the foundation and private access:
 
-- Record a prepared dish with its name, preparation date, and optional notes.
+- Record a meal with its name, date, optional location, and optional notes.
 - Browse the shared family journal, ordered by preparation date and then entry time.
-- Edit a dish when you created it; administrators can edit every dish.
+- Edit a meal when you created it; administrators can edit every meal.
 - Preserve the existing administrator bootstrap, family accounts, password-change, session, CSRF, and account-status protections.
 
 There is deliberately no email delivery, invitation token, password-reset, MFA, direct browser connection to Supabase, dish deletion, recipes, reviews, ratings, ingredients, or photos.
@@ -26,7 +26,7 @@ The repository is a modular monolith:
 
 The backend uses Flyway as the schema authority. Hibernate validates the database schema and does not create or modify it. The account foundation uses UUID identifiers, normalized unique email lookup, `ADMIN`/`MEMBER` roles, and `PENDING`/`ACTIVE`/`DISABLED` statuses. The credential migration only adds `password_hash` and `must_change_password` columns; it does not delete or rewrite existing data.
 
-Future domain modules will keep dishes independent from recipes and reviews. A dish currently records its creator, name, preparation date, and optional notes. A later recipe milestone can add a nullable `recipe_id`; dish ingredients will refer directly to dishes; and optional reviews will have their own authorization-protected endpoints and will not appear in ordinary dish responses.
+Future domain modules will keep dishes independent from recipes and reviews. A dish currently records its creator, name, meal date, optional location, and optional notes. A later recipe milestone can add a nullable `recipe_id`; dish ingredients will refer directly to dishes; and optional reviews will have their own authorization-protected endpoints and will not appear in ordinary dish responses.
 
 ## Prerequisites
 

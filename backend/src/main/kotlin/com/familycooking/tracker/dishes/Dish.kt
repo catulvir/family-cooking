@@ -17,6 +17,8 @@ class Dish(
     var name: String,
     @Column(name = "prepared_on", nullable = false)
     var preparedOn: LocalDate,
+    @Column(length = 200)
+    var location: String? = null,
     @Column(length = 5000)
     var notes: String? = null,
     @Column(name = "created_by", nullable = false, updatable = false)

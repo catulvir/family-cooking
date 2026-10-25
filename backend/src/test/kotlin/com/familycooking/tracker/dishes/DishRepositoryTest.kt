@@ -30,18 +30,23 @@ class DishRepositoryTest : PostgresTestSupport() {
     @Test
     fun `minimal dish survives reload and can be updated`() {
         val owner = users.saveAndFlush(AppUser(email = "repo@example.com"))
-        val dish = dishes.saveAndFlush(Dish(name = "Soup", preparedOn = LocalDate.parse("2026-10-24"), createdBy = owner.id))
+        val dish = dishes.saveAndFlush(
+            Dish(name = "Soup", preparedOn = LocalDate.parse("2026-10-24"), location = "At home", createdBy = owner.id),
+        )
         entityManager.clear()
         val loaded = dishes.findById(dish.id).orElseThrow()
         assertNull(loaded.notes)
+        assertEquals("At home", loaded.location)
         assertEquals(owner.id, loaded.createdBy)
         assertEquals(LocalDate.parse("2026-10-24"), loaded.preparedOn)
         loaded.name = "Pumpkin soup"
         loaded.notes = "Roasted the pumpkin first"
+        loaded.location = "Grandma's kitchen"
         dishes.saveAndFlush(loaded)
         entityManager.clear()
         assertEquals("Pumpkin soup", dishes.findById(dish.id).orElseThrow().name)
         assertEquals("Roasted the pumpkin first", dishes.findById(dish.id).orElseThrow().notes)
+        assertEquals("Grandma's kitchen", dishes.findById(dish.id).orElseThrow().location)
     }
 
     @Test
@@ -55,7 +60,7 @@ class DishRepositoryTest : PostgresTestSupport() {
             Dish(id = UUID(0, 4), name = "Tie two", preparedOn = LocalDate.parse("2026-10-24"), createdBy = owner.id, createdAt = timestamp),
         )
         dishes.saveAllAndFlush(records)
-        assertEquals(records.reversed().map { it.id }, dishes.findAllByOrderByPreparedOnDescCreatedAtDescIdDesc().map { it.id })
+        assertEquals(records.reversed().map { it.id }, dishes.findAllOrdered().map { it.id })
     }
 
     @Test

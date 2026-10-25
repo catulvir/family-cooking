@@ -12,6 +12,7 @@ const soup = {
   id: 'dish-1',
   name: 'Pumpkin soup',
   preparedOn: '2026-10-23',
+  location: null,
   notes: 'Roasted first',
   createdBy: 'member-1',
   createdAt: '2026-10-23T10:00:00Z',
@@ -69,22 +70,35 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('family cooking journal', () => {
+  it('records an optional location for a meal', async () => {
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
+    fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Risotto' } })
+    fireEvent.change(screen.getByLabelText('Location (optional)'), {
+      target: { value: 'Cafe Noir' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save meal' }))
+
+    expect(await screen.findByRole('heading', { name: 'Risotto' })).toBeInTheDocument()
+    const creation = requests.find(({ init }) => init.method === 'POST')!
+    expect(JSON.parse(creation.init.body as string)).toMatchObject({ location: 'Cafe Noir' })
+  })
+
   it('creates a minimal dish with today as default and keeps it after remount', async () => {
     const { unmount } = render(<App />)
-    expect(
-      await screen.findByText('No dishes yet. Record your first family meal.'),
-    ).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Add dish' }))
+    expect(await screen.findByText('No meals yet. Record your first meal.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Add meal' }))
     const now = new Date()
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-    expect(screen.getByLabelText('Preparation date')).toHaveValue(today)
-    fireEvent.change(screen.getByLabelText('Dish name'), { target: { value: '  Pasta  ' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save dish' }))
+    expect(screen.getByLabelText('Meal date')).toHaveValue(today)
+    fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: '  Pasta  ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save meal' }))
     expect(await screen.findByRole('heading', { name: 'Pasta' })).toBeInTheDocument()
     const creation = requests.find(({ init }) => init.method === 'POST')!
     expect(JSON.parse(creation.init.body as string)).toEqual({
       name: 'Pasta',
       preparedOn: today,
+      location: null,
       notes: null,
     })
     expect(creation.init.credentials).toBe('include')
@@ -99,16 +113,16 @@ describe('family cooking journal', () => {
     render(<App />)
     fireEvent.click(await screen.findByRole('button', { name: 'Pumpkin soup' }))
     expect(await screen.findByText('Roasted first')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Edit dish' }))
-    fireEvent.change(screen.getByLabelText('Dish name'), { target: { value: 'Carrot soup' } })
-    fireEvent.change(screen.getByLabelText('Preparation date'), { target: { value: '2026-10-22' } })
-    fireEvent.change(screen.getByLabelText('Preparation notes (optional)'), {
+    fireEvent.click(screen.getByRole('button', { name: 'Edit meal' }))
+    fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Carrot soup' } })
+    fireEvent.change(screen.getByLabelText('Meal date'), { target: { value: '2026-10-22' } })
+    fireEvent.change(screen.getByLabelText('Notes (optional)'), {
       target: { value: '' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save dish' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save meal' }))
     expect(await screen.findByRole('heading', { name: 'Carrot soup' })).toBeInTheDocument()
     expect(requests.find(({ init }) => init.method === 'PUT')?.path).toBe('/api/v1/dishes/dish-1')
-    fireEvent.click(screen.getByRole('button', { name: 'Back to dishes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Back to meals' }))
     expect(await screen.findByRole('button', { name: 'Carrot soup' })).toBeInTheDocument()
     expect(records[0].notes).toBeNull()
   })
@@ -121,12 +135,12 @@ describe('family cooking journal', () => {
     render(<App />)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Yesterday soup' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Edit dish' }))
-    fireEvent.change(screen.getByLabelText('Dish name'), {
+    fireEvent.click(screen.getByRole('button', { name: 'Edit meal' }))
+    fireEvent.change(screen.getByLabelText('Meal name'), {
       target: { value: 'Updated yesterday soup' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save dish' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Back to dishes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save meal' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Back to meals' }))
 
     expect(
       screen
@@ -143,45 +157,45 @@ describe('family cooking journal', () => {
     render(<App />)
     fireEvent.click(await screen.findByRole('button', { name: 'Pumpkin soup' }))
     expect(await screen.findByRole('heading', { name: 'Pumpkin soup' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Edit dish' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit meal' })).not.toBeInTheDocument()
   })
 
   it('rejects blank names before sending a save request', async () => {
     render(<App />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Add dish' }))
-    fireEvent.change(screen.getByLabelText('Dish name'), { target: { value: '   ' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save dish' }))
-    expect(await screen.findByText('Enter a dish name.')).toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
+    fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: '   ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save meal' }))
+    expect(await screen.findByText('Enter a meal name.')).toBeInTheDocument()
     expect(requests.some(({ init }) => init.method === 'POST')).toBe(false)
   })
 
   it('preserves entered values and displays field errors after failed saves', async () => {
     saveFailure = 400
     render(<App />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Add dish' }))
-    fireEvent.change(screen.getByLabelText('Dish name'), { target: { value: 'Pasta' } })
-    fireEvent.change(screen.getByLabelText('Preparation notes (optional)'), {
+    fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
+    fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Pasta' } })
+    fireEvent.change(screen.getByLabelText('Notes (optional)'), {
       target: { value: 'Family notes' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save dish' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save meal' }))
     expect(await screen.findByText('Name is invalid')).toBeInTheDocument()
-    expect(screen.getByLabelText('Dish name')).toHaveValue('Pasta')
-    expect(screen.getByLabelText('Preparation notes (optional)')).toHaveValue('Family notes')
+    expect(screen.getByLabelText('Meal name')).toHaveValue('Pasta')
+    expect(screen.getByLabelText('Notes (optional)')).toHaveValue('Family notes')
     saveFailure = undefined
-    fireEvent.click(screen.getByRole('button', { name: 'Save dish' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save meal' }))
     expect(await screen.findByRole('heading', { name: 'Pasta' })).toBeInTheDocument()
   })
 
   it('explains expired sessions while preserving an unsaved dish', async () => {
     saveFailure = 401
     render(<App />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Add dish' }))
-    fireEvent.change(screen.getByLabelText('Dish name'), { target: { value: 'Pasta' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save dish' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
+    fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Pasta' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save meal' }))
     expect(
       await screen.findByText('Your session has expired. Please sign in again.'),
     ).toBeInTheDocument()
-    expect(screen.getByLabelText('Dish name')).toHaveValue('Pasta')
+    expect(screen.getByLabelText('Meal name')).toHaveValue('Pasta')
   })
 
   it('can retry a failed list request', async () => {
@@ -190,15 +204,13 @@ describe('family cooking journal', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong')
     listFailure = undefined
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
-    expect(
-      await screen.findByText('No dishes yet. Record your first family meal.'),
-    ).toBeInTheDocument()
+    expect(await screen.findByText('No meals yet. Record your first meal.')).toBeInTheDocument()
   })
 
   it('keeps administration available alongside the journal', async () => {
     account.role = 'ADMIN'
     render(<App />)
-    expect(await screen.findByRole('heading', { name: 'Cooking journal' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Meal journal' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Family accounts' })).toBeInTheDocument()
     await waitFor(() =>
       expect(requests.some(({ path }) => path === '/api/v1/admin/users')).toBe(true),

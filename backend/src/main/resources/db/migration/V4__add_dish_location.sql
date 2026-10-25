@@ -1,0 +1,1 @@
+ALTER TABLE dishes ADD COLUMN location VARCHAR(200);

@@ -16,14 +16,22 @@ class DishNotFoundException : RuntimeException("Dish not found")
 @Transactional(readOnly = true)
 class DishService(private val repository: DishRepository) {
     fun list(actor: AppUserPrincipal): List<DishResponse> =
-        repository.findAllByOrderByPreparedOnDescCreatedAtDescIdDesc().map { it.toResponse(canEdit(it, actor)) }
+        repository.findAllOrdered().map { it.toResponse(canEdit(it, actor)) }
 
     fun get(id: UUID, actor: AppUserPrincipal): DishResponse =
         find(id).let { it.toResponse(canEdit(it, actor)) }
 
     @Transactional
     fun create(request: DishRequest, actor: AppUserPrincipal): DishResponse =
-        repository.save(Dish(name = request.name, preparedOn = request.preparedOn, notes = request.notes, createdBy = actor.id))
+        repository.save(
+            Dish(
+                name = request.name,
+                preparedOn = request.preparedOn,
+                location = request.location,
+                notes = request.notes,
+                createdBy = actor.id,
+            ),
+        )
             .toResponse(true)
 
     @Transactional
@@ -32,6 +40,7 @@ class DishService(private val repository: DishRepository) {
         if (!canEdit(dish, actor)) throw AccessDeniedException("You cannot edit this dish")
         dish.name = request.name
         dish.preparedOn = request.preparedOn
+        dish.location = request.location
         dish.notes = request.notes
         dish.updatedAt = Instant.now()
         return dish.toResponse(true)

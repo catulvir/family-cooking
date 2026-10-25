@@ -39,7 +39,7 @@ class DishIntegrationTest : PostgresTestSupport() {
         val created = mvc.post("/api/v1/dishes") {
             session = browserSession; header("X-CSRF-TOKEN", token)
             contentType = MediaType.APPLICATION_JSON
-            content = """{"name":"Soup","preparedOn":"2026-10-24"}"""
+            content = """{"name":"Soup","preparedOn":"2026-10-24","location":"At home"}"""
         }.andExpect { status { isCreated() } }.andReturn()
         val id = mapper.readTree(created.response.contentAsString)["id"].asText()
         mvc.get("/api/v1/dishes") { session = browserSession }.andExpect {
@@ -48,7 +48,7 @@ class DishIntegrationTest : PostgresTestSupport() {
         mvc.put("/api/v1/dishes/$id") {
             session = browserSession; header("X-CSRF-TOKEN", token)
             contentType = MediaType.APPLICATION_JSON
-            content = """{"name":"Pumpkin soup","preparedOn":"2026-10-23","notes":"Roasted first"}"""
+            content = """{"name":"Pumpkin soup","preparedOn":"2026-10-23","location":"Tallinn bistro","notes":"Roasted first"}"""
         }.andExpect { status { isOk() } }
         mvc.get("/api/v1/dishes/$id") { session = browserSession }.andExpect {
             status { isOk() }; jsonPath("$.name") { value("Pumpkin soup") }
@@ -56,6 +56,7 @@ class DishIntegrationTest : PostgresTestSupport() {
         }
         val saved = dishes.findById(java.util.UUID.fromString(id)).orElseThrow()
         assertEquals("Roasted first", saved.notes)
+        assertEquals("Tallinn bistro", saved.location)
         assertFalse(saved.updatedAt.isBefore(saved.createdAt))
         mvc.post("/api/v1/auth/logout") { session = browserSession; header("X-CSRF-TOKEN", token) }
             .andExpect { status { isNoContent() } }

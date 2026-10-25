@@ -4,6 +4,7 @@ export interface Dish {
   id: string
   name: string
   preparedOn: string
+  location: string | null
   notes: string | null
   createdBy: string
   createdAt: string
@@ -14,6 +15,7 @@ export interface Dish {
 export interface DishInput {
   name: string
   preparedOn: string
+  location: string | null
   notes: string | null
 }
 
