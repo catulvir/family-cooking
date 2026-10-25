@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import { authApi, type CreatedUser, type CurrentUser, type ManagedUser } from './api/auth'
+import Journal from './Journal'
 import './App.css'
 
 export default function App() {
@@ -182,7 +183,8 @@ function Dashboard({
           Sign out
         </button>
       </div>
-      {user.role === 'ADMIN' ? (
+      <Journal />
+      {user.role === 'ADMIN' && (
         <UserManagement
           users={users}
           setUsers={setUsers}
@@ -190,8 +192,6 @@ function Dashboard({
           setCreatedUser={setCreatedUser}
           setError={setError}
         />
-      ) : (
-        <p>Your cooking journal will appear here in the next milestone.</p>
       )}
     </div>
   )

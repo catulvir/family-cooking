@@ -11,6 +11,21 @@ import java.time.Instant
 
 @RestControllerAdvice
 class ApiExceptionHandler {
+    @ExceptionHandler(com.familycooking.tracker.dishes.DishNotFoundException::class)
+    fun handleDishNotFound(request: HttpServletRequest): ResponseEntity<ApiError> =
+        error(HttpStatus.NOT_FOUND, "DISH_NOT_FOUND", "Dish not found", request)
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException::class)
+    fun handleForbidden(request: HttpServletRequest): ResponseEntity<ApiError> =
+        error(HttpStatus.FORBIDDEN, "FORBIDDEN", "You do not have access to that action", request)
+
+    @ExceptionHandler(
+        org.springframework.http.converter.HttpMessageNotReadableException::class,
+        org.springframework.web.method.annotation.MethodArgumentTypeMismatchException::class,
+    )
+    fun handleMalformedRequest(request: HttpServletRequest): ResponseEntity<ApiError> =
+        error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "Check the required fields, dates, and identifiers", request)
+
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handleValidation(
         exception: MethodArgumentNotValidException,

@@ -1,18 +1,17 @@
 # Family Cooking Tracker
 
-Private, family-only web application for recording prepared dishes and, in later milestones, reusable recipes, ingredients, reviews, and protected photos.
+Private, family-only web application for recording family meals and notable food experiences, with later support for reusable recipes, ingredients, reviews, and protected photos.
 
 ## Current milestone
 
-Milestone 2 adds private, family-only access on top of the Milestone 1 foundation:
+Milestone 3 adds the family cooking journal on top of the foundation and private access:
 
-- Administrator bootstrap from deployment configuration
-- Administrator-created family accounts with a single-view temporary password
-- Forced password change for new accounts before they become active
-- HTTP-only, 30-day browser sessions with CSRF protection
-- Administrator and member roles, plus pending and disabled account states
+- Record a meal with its name, date, optional location, and optional notes.
+- Browse the shared family journal, ordered by preparation date and then entry time.
+- Edit a meal when you created it; administrators can edit every meal.
+- Preserve the existing administrator bootstrap, family accounts, password-change, session, CSRF, and account-status protections.
 
-There is deliberately no email delivery, invitation token, password-reset, MFA, or direct browser connection to Supabase. Dishes, recipes, reviews, and photos remain future work.
+There is deliberately no email delivery, invitation token, password-reset, MFA, direct browser connection to Supabase, dish deletion, recipes, reviews, ratings, ingredients, or photos.
 
 ## Architecture
 
@@ -27,7 +26,7 @@ The repository is a modular monolith:
 
 The backend uses Flyway as the schema authority. Hibernate validates the database schema and does not create or modify it. The account foundation uses UUID identifiers, normalized unique email lookup, `ADMIN`/`MEMBER` roles, and `PENDING`/`ACTIVE`/`DISABLED` statuses. The credential migration only adds `password_hash` and `must_change_password` columns; it does not delete or rewrite existing data.
 
-Future domain modules will keep dishes independent from recipes and reviews. In particular, a dish will have a nullable `recipe_id`; dish ingredients will refer directly to dishes; and optional reviews will have their own authorization-protected endpoints and will not appear in ordinary dish responses.
+Future domain modules will keep dishes independent from recipes and reviews. A dish currently records its creator, name, meal date, optional location, and optional notes. A later recipe milestone can add a nullable `recipe_id`; dish ingredients will refer directly to dishes; and optional reviews will have their own authorization-protected endpoints and will not appear in ordinary dish responses.
 
 ## Prerequisites
 
@@ -146,12 +145,11 @@ Create the Supabase project in **Central EU (Frankfurt)**. Render is IPv4-only, 
 
 Create the future `dish-photos` bucket as a private Supabase Storage bucket. The backend will use it only after the protected-upload milestone is implemented; it will store object keys and photo metadata in PostgreSQL, not raw image bytes.
 
-## Planned milestones
+## Next milestones
 
-1. Dish creation and editing, including dishes with no recipe, review, rating, photo, or ingredients.
-2. Optional reviews and ratings with member ownership and administrator access.
-3. Recipes and independently editable recipe ingredients.
-4. Normalized dish ingredients and any/all/exclude ingredient search.
-5. Protected photo upload backed by private object storage.
-6. Filtering, pagination, and user experience improvements.
-7. Production deployment verification, backups, monitoring, and security hardening.
+1. Optional reviews and ratings with member ownership and administrator access.
+2. Recipes and independently editable recipe ingredients.
+3. Normalized dish ingredients and any/all/exclude ingredient search.
+4. Protected photo upload backed by private object storage.
+5. Filtering, pagination, and user experience improvements.
+6. Production deployment verification, backups, monitoring, and security hardening.

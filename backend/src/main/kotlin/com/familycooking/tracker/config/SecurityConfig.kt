@@ -29,6 +29,9 @@ class SecurityConfig(private val accountStatusFilter: com.familycooking.tracker.
                     .anyRequest().authenticated()
             }
             .httpBasic { it.disable() }
+            .exceptionHandling { errors ->
+                errors.authenticationEntryPoint { _, response, _ -> response.sendError(401) }
+            }
             .csrf { csrf ->
                 csrf.csrfTokenRepository(HttpSessionCsrfTokenRepository())
                     .ignoringRequestMatchers("/actuator/health", "/api/v1/health")
