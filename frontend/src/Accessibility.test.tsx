@@ -62,6 +62,34 @@ it('exposes a labelled account disclosure and closes it with Escape and focus re
   expect(screen.queryByRole('button', { name: 'Family accounts' })).not.toBeInTheDocument()
 })
 
+it.each(['another control', 'no focus target'])(
+  'keeps the disclosure open for internal focus and closes it when focus leaves for %s',
+  async (destination) => {
+    render(<App />)
+    await screen.findByRole('button', { name: 'Soup' })
+    const account = screen.getByRole('button', { name: 'Account' })
+    act(() => account.focus())
+    fireEvent.click(account)
+
+    const family = screen.getByRole('button', { name: 'Family accounts' })
+    act(() => family.focus())
+    expect(account).toHaveAttribute('aria-expanded', 'true')
+    const signOut = screen.getByRole('button', { name: 'Sign out' })
+    act(() => signOut.focus())
+    expect(account).toHaveAttribute('aria-expanded', 'true')
+
+    const outside = screen.getByRole('button', { name: 'Journal' })
+    act(() => {
+      if (destination === 'another control') outside.focus()
+      else signOut.blur()
+    })
+    expect(account).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('button', { name: 'Family accounts' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Sign out' })).not.toBeInTheDocument()
+    expect(document.activeElement).toBe(destination === 'another control' ? outside : document.body)
+  },
+)
+
 it('only offers sign out to members and no protected navigation before password change', async () => {
   vi.mocked(authApi.currentUser).mockResolvedValue({ ...admin, role: 'MEMBER' })
   const { unmount } = render(<App />)
