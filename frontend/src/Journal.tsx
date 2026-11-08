@@ -142,6 +142,12 @@ function MealForm({
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
+  const inFlight = useRef(false)
+  const formRef = useRef<HTMLFormElement>(null)
+  useEffect(() => {
+    if (Object.keys(fieldErrors).length)
+      formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
+  }, [fieldErrors])
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const cancelButton = useRef<HTMLButtonElement>(null)
   const keepEditingButton = useRef<HTMLButtonElement>(null)
@@ -159,11 +165,23 @@ function MealForm({
   }
   const submit = async (event: FormEvent) => {
     event.preventDefault()
+    if (inFlight.current) return
     const trimmedName = name.trim()
-    if (!trimmedName) {
-      setFieldErrors({ name: 'Enter a meal name.' })
+    const errors: Record<string, string> = {}
+    if (!trimmedName) errors.name = 'Enter a meal name.'
+    const parsedDate = new Date(`${preparedOn}T00:00:00Z`)
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(preparedOn) ||
+      Number.isNaN(parsedDate.getTime()) ||
+      parsedDate.toISOString().slice(0, 10) !== preparedOn
+    )
+      errors.preparedOn = 'Enter a valid meal date.'
+    setError('')
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors)
       return
     }
+    inFlight.current = true
     setSaving(true)
     setError('')
     setFieldErrors({})
@@ -181,11 +199,12 @@ function MealForm({
         setFieldErrors(reason.fieldErrors)
       } else setError(messageFrom(reason))
     } finally {
+      inFlight.current = false
       setSaving(false)
     }
   }
   return (
-    <form className="form dish-form" onSubmit={submit} noValidate>
+    <form ref={formRef} className="form dish-form" onSubmit={submit} noValidate>
       <h2>{dish ? 'Edit meal' : 'Record a meal'}</h2>
       <label>
         Meal name
@@ -193,6 +212,7 @@ function MealForm({
           value={name}
           onChange={(event) => setName(event.target.value)}
           aria-describedby={fieldErrors.name ? 'meal-name-error' : undefined}
+          aria-invalid={!!fieldErrors.name}
         />
       </label>
       {fieldErrors.name && (
@@ -204,30 +224,48 @@ function MealForm({
         Meal date
         <input
           type="date"
+          aria-invalid={!!fieldErrors.preparedOn}
+          aria-describedby={fieldErrors.preparedOn ? 'meal-date-error' : undefined}
           value={preparedOn}
           onChange={(event) => setPreparedOn(event.target.value)}
           required
         />
       </label>
-      {fieldErrors.preparedOn && <p className="field-error">{fieldErrors.preparedOn}</p>}
+      {fieldErrors.preparedOn && (
+        <p id="meal-date-error" className="field-error">
+          {fieldErrors.preparedOn}
+        </p>
+      )}
       <label>
         Location (optional)
         <input
           value={location}
+          aria-invalid={!!fieldErrors.location}
+          aria-describedby={fieldErrors.location ? 'meal-location-error' : undefined}
           onChange={(event) => setLocation(event.target.value)}
           maxLength={200}
         />
       </label>
-      {fieldErrors.location && <p className="field-error">{fieldErrors.location}</p>}
+      {fieldErrors.location && (
+        <p id="meal-location-error" className="field-error">
+          {fieldErrors.location}
+        </p>
+      )}
       <label>
         Notes (optional)
         <textarea
           value={notes}
+          aria-invalid={!!fieldErrors.notes}
+          aria-describedby={fieldErrors.notes ? 'meal-notes-error' : undefined}
           onChange={(event) => setNotes(event.target.value)}
           maxLength={5000}
         />
       </label>
-      {fieldErrors.notes && <p className="field-error">{fieldErrors.notes}</p>}
+      {fieldErrors.notes && (
+        <p id="meal-notes-error" className="field-error">
+          {fieldErrors.notes}
+        </p>
+      )}
       {error && (
         <p className="error" role="alert">
           {error}

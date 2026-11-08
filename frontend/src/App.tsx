@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { authApi, type CreatedUser, type CurrentUser, type ManagedUser } from './api/auth'
 import Journal from './Journal'
 import { BookOpen, ChefHat, LogOut, Users } from 'lucide-react'
@@ -61,8 +61,11 @@ function Login({
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const inFlight = useRef(false)
   const submit = async (event: FormEvent) => {
     event.preventDefault()
+    if (inFlight.current) return
+    inFlight.current = true
     setSubmitting(true)
     setError('')
     try {
@@ -70,6 +73,7 @@ function Login({
     } catch (reason) {
       setError(messageFrom(reason))
     } finally {
+      inFlight.current = false
       setSubmitting(false)
     }
   }
@@ -113,13 +117,21 @@ function PasswordChange({
 }) {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const inFlight = useRef(false)
   const submit = async (event: FormEvent) => {
     event.preventDefault()
+    if (inFlight.current) return
+    inFlight.current = true
+    setSubmitting(true)
     setError('')
     try {
       onChanged(await authApi.changePassword(currentPassword, newPassword))
     } catch (reason) {
       setError(messageFrom(reason))
+    } finally {
+      inFlight.current = false
+      setSubmitting(false)
     }
   }
   return (
@@ -146,7 +158,7 @@ function PasswordChange({
           required
         />
       </label>
-      <button>Save new password</button>
+      <button disabled={submitting}>{submitting ? 'Saving…' : 'Save new password'}</button>
     </form>
   )
 }
@@ -237,8 +249,13 @@ function UserManagement({
 }) {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'ADMIN' | 'MEMBER'>('MEMBER')
+  const [submitting, setSubmitting] = useState(false)
+  const inFlight = useRef(false)
   const submit = async (event: FormEvent) => {
     event.preventDefault()
+    if (inFlight.current) return
+    inFlight.current = true
+    setSubmitting(true)
     setError('')
     setCreatedUser(null)
     try {
@@ -248,6 +265,9 @@ function UserManagement({
       setEmail('')
     } catch (reason) {
       setError(messageFrom(reason))
+    } finally {
+      inFlight.current = false
+      setSubmitting(false)
     }
   }
   return (
@@ -265,7 +285,7 @@ function UserManagement({
             <option value="ADMIN">Administrator</option>
           </select>
         </label>
-        <button>Create account</button>
+        <button disabled={submitting}>{submitting ? 'Creating…' : 'Create account'}</button>
       </form>
       {createdUser && (
         <aside className="temporary-password">

@@ -75,6 +75,22 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('family cooking journal', () => {
+  it('associates validation errors and focuses the first invalid field', async () => {
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
+    fireEvent.change(screen.getByLabelText('Meal date'), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save meal' }))
+    expect(screen.getByLabelText('Meal name')).toHaveFocus()
+    expect(screen.getByLabelText('Meal name')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByLabelText('Meal name')).toHaveAccessibleDescription('Enter a meal name.')
+    fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Soup' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save meal' }))
+    expect(screen.getByLabelText('Meal date')).toHaveFocus()
+    expect(screen.getByLabelText('Meal date')).toHaveAccessibleDescription(
+      'Enter a valid meal date.',
+    )
+    expect(requests.some(({ init }) => init.method === 'POST')).toBe(false)
+  })
   it('preserves both drafts after failed logout', async () => {
     account.role = 'ADMIN'
     logoutFailure = true
