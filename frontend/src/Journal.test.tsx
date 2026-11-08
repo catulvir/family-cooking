@@ -224,6 +224,25 @@ describe('family cooking journal', () => {
     )
   })
 
+  it('preserves the account email and administrator role across navigation', async () => {
+    account.role = 'ADMIN'
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Family accounts' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), {
+      target: { value: 'new-admin@example.com' },
+    })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Role' }), {
+      target: { value: 'ADMIN' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Journal' }))
+    expect(screen.queryByRole('textbox', { name: 'Email' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Role' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Family accounts' }))
+    expect(screen.getByRole('textbox', { name: 'Email' })).toHaveValue('new-admin@example.com')
+    expect(screen.getByRole('combobox', { name: 'Role' })).toHaveValue('ADMIN')
+    expect(requests.some(({ init }) => init.method === 'POST')).toBe(false)
+  })
+
   it('does not fetch dishes before the forced password change', async () => {
     account.status = 'PENDING'
     account.mustChangePassword = true

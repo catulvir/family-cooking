@@ -207,14 +207,16 @@ function Dashboard({
       <div hidden={view !== 'journal'}>
         <Journal />
       </div>
-      {user.role === 'ADMIN' && view === 'accounts' && (
-        <UserManagement
-          users={users}
-          setUsers={setUsers}
-          createdUser={createdUser}
-          setCreatedUser={setCreatedUser}
-          setError={setError}
-        />
+      {user.role === 'ADMIN' && (
+        <div hidden={view !== 'accounts'}>
+          <UserManagement
+            users={users}
+            setUsers={setUsers}
+            createdUser={createdUser}
+            setCreatedUser={setCreatedUser}
+            setError={setError}
+          />
+        </div>
       )}
     </div>
   )
