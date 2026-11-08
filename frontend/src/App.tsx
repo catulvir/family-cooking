@@ -42,7 +42,10 @@ export default function App() {
   return (
     <main className={`app-shell ${user && !user.mustChangePassword ? 'signed-in' : 'welcome'}`}>
       <section aria-labelledby="page-title" className="welcome-card">
-        <ChefHat className="brand-icon" aria-hidden="true" />
+        <div className="brand-row">
+          <ChefHat className="brand-icon" aria-hidden="true" />
+          <BotanicalSprig />
+        </div>
         <p className="eyebrow">By Rozbergs · Private family space</p>
         <h1 id="page-title">Family Cooking Tracker</h1>
         {checkingSession ? (
@@ -84,6 +87,26 @@ export default function App() {
         )}
       </section>
     </main>
+  )
+}
+
+/** Original rosemary-inspired line drawing; decorative and theme-coloured. */
+function BotanicalSprig() {
+  return (
+    <svg
+      className="botanical"
+      viewBox="0 0 112 64"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M8 57C38 51 61 33 99 8M33 48C39 35 42 23 42 10" />
+      <path d="M24 52C14 50 10 44 9 38C19 38 26 43 24 52ZM39 44C28 43 23 37 23 31C34 32 40 37 39 44ZM55 34C43 34 38 28 38 22C49 23 55 27 55 34ZM71 23C60 25 53 20 51 14C62 13 69 17 71 23ZM86 15C77 15 71 10 70 5C79 5 86 9 86 15ZM31 49C32 57 39 60 46 59C44 52 39 47 31 49ZM49 38C52 47 60 48 67 45C62 39 56 35 49 38ZM66 27C70 35 78 36 85 32C79 27 73 24 66 27ZM83 16C88 23 96 22 102 18C96 14 90 12 83 16ZM39 31C31 28 28 21 29 16C38 19 41 24 39 31ZM42 20C49 18 52 12 51 7C44 9 41 14 42 20Z" />
+    </svg>
   )
 }
 

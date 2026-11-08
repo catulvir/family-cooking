@@ -3,6 +3,7 @@ import { FormikProvider, useFormik } from 'formik'
 import { AppForm, FormField, FormError } from './forms'
 import { mealSchema, type MealValues } from './formSchemas'
 import { dishesApi, DishApiError, type Dish, type DishInput } from './api/dishes'
+import { ArrowLeft, Pencil, Plus, Save } from 'lucide-react'
 
 type JournalView = { kind: 'list' } | { kind: 'detail'; dish: Dish } | { kind: 'form'; dish?: Dish }
 
@@ -74,7 +75,7 @@ export default function Journal({ active = true }: { active?: boolean }) {
                 setView({ kind: 'form' })
               }}
             >
-              Add meal
+              <Plus aria-hidden="true" /> Add meal
             </button>
           </div>
           {loading ? null : error ? (
@@ -161,7 +162,7 @@ function MealDetail({
   return (
     <article className="dish-detail">
       <button className="secondary" onClick={onBack}>
-        Back to meals
+        <ArrowLeft aria-hidden="true" /> Back to meals
       </button>
       <p className="eyebrow">{formatDate(dish.preparedOn)}</p>
       <h2 id="journal-detail-title" tabIndex={-1}>
@@ -171,7 +172,7 @@ function MealDetail({
       {dish.notes && <p className="notes">{dish.notes}</p>}
       {dish.canEdit && (
         <button ref={editRef} onClick={onEdit}>
-          Edit meal
+          <Pencil aria-hidden="true" /> Edit meal
         </button>
       )}
     </article>
@@ -236,7 +237,10 @@ function MealForm({
         <FormField name="notes" label="Notes (optional)" as="textarea" maxLength={5000} />
         <FormError />
         <div className="form-actions">
-          <button disabled={saving}>{saving ? 'Saving…' : 'Save meal'}</button>
+          <button disabled={saving}>
+            <Save aria-hidden="true" />
+            {saving ? 'Saving…' : 'Save meal'}
+          </button>
           <button
             ref={cancelButton}
             type="button"
