@@ -87,7 +87,7 @@ function Login({
           autoComplete="current-password"
         />
         <button disabled={formik.isSubmitting}>
-          {formik.isSubmitting ? 'Signing in�' : 'Sign in'}
+          {formik.isSubmitting ? 'Signing in…' : 'Sign in'}
         </button>
         <p className="access-note">Ask the family administrator for an account.</p>
       </AppForm>
@@ -135,7 +135,7 @@ function PasswordChange({
           autoComplete="new-password"
         />
         <button disabled={formik.isSubmitting}>
-          {formik.isSubmitting ? 'Saving�' : 'Save new password'}
+          {formik.isSubmitting ? 'Saving…' : 'Save new password'}
         </button>
       </AppForm>
     </FormikProvider>
@@ -255,7 +255,7 @@ function UserManagement({
             <option value="ADMIN">Administrator</option>
           </FormField>
           <button disabled={formik.isSubmitting}>
-            {formik.isSubmitting ? 'Creating�' : 'Create account'}
+            {formik.isSubmitting ? 'Creating…' : 'Create account'}
           </button>
         </AppForm>
       </FormikProvider>
