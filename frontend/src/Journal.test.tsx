@@ -207,11 +207,18 @@ describe('family cooking journal', () => {
     expect(await screen.findByText('No meals yet. Record your first meal.')).toBeInTheDocument()
   })
 
-  it('keeps administration available alongside the journal', async () => {
+  it('opens administration separately and preserves the journal draft on return', async () => {
     account.role = 'ADMIN'
     render(<App />)
     expect(await screen.findByRole('heading', { name: 'Meal journal' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Family accounts' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Add meal' }))
+    fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Draft soup' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Family accounts' }))
     expect(screen.getByRole('heading', { name: 'Family accounts' })).toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'Meal name' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Journal' }))
+    expect(screen.getByLabelText('Meal name')).toHaveValue('Draft soup')
     await waitFor(() =>
       expect(requests.some(({ path }) => path === '/api/v1/admin/users')).toBe(true),
     )

@@ -1,0 +1,26 @@
+/* Central colour schema. Components consume semantic tokens from here. */
+:root {
+  --primary-color: #cf7954;
+  --primary-hover-color: #efc5ad;
+  --on-primary-color: #192d21;
+  --background-color: #f6f1e7;
+  --surface-color: #fffefa;
+  --surface-inset-color: #fffdf8;
+  --input-background-color: white;
+  --text-color: #163d2b;
+  --heading-color: #254e37;
+  --label-color: #344238;
+  --muted-text-color: #59635a;
+  --eyebrow-color: #8b4c2b;
+  --brand-color: #a54e2b;
+  --border-color: #dfd7c6;
+  --input-border-color: #bdb5a5;
+  --secondary-color: #eee9dd;
+  --error-color: #9f3c2e;
+  --notice-background-color: #fff1c9;
+  --welcome-peach-color: #f1d7ca;
+  --welcome-sage-color: #e4e7cf;
+  --shadow-color: rgb(55 45 25 / 10%);
+  --inverse-text-color: var(--input-background-color);
+  --focus-color: var(--text-color);
+}
