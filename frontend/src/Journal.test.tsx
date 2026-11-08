@@ -23,6 +23,7 @@ let records: (typeof soup)[]
 let account: typeof member
 let saveFailure: number | undefined
 let listFailure: number | undefined
+let logoutFailure: boolean
 let requests: { path: string; init: RequestInit }[]
 
 beforeEach(() => {
@@ -30,6 +31,7 @@ beforeEach(() => {
   account = { ...member }
   saveFailure = undefined
   listFailure = undefined
+  logoutFailure = false
   requests = []
   vi.stubGlobal(
     'fetch',
@@ -40,6 +42,9 @@ beforeEach(() => {
         new Response(JSON.stringify(data), { status })
       if (path === '/api/v1/auth/me') return respond(account)
       if (path === '/api/v1/auth/csrf') return respond({ token: 'test-csrf' })
+      if (path === '/api/v1/auth/logout')
+        return logoutFailure ? respond({}, 500) : new Response(null, { status: 204 })
+      if (path === '/api/v1/auth/login') return respond(account)
       if (path === '/api/v1/admin/users') return respond([])
       if (path === '/api/v1/dishes' && !init.method) {
         return listFailure ? respond({}, listFailure) : respond(records)
@@ -70,6 +75,102 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('family cooking journal', () => {
+  it('preserves both drafts after failed logout', async () => {
+    account.role = 'ADMIN'
+    logoutFailure = true
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
+    fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Draft soup' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Family accounts' }))
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'draft@example.com' } })
+    fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'ADMIN' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong')
+    expect(screen.getByLabelText('Email')).toHaveValue('draft@example.com')
+    expect(screen.getByLabelText('Role')).toHaveValue('ADMIN')
+    fireEvent.click(screen.getByRole('button', { name: 'Journal' }))
+    expect(screen.getByLabelText('Meal name')).toHaveValue('Draft soup')
+  })
+
+  it('clears both drafts after successful logout and login', async () => {
+    account.role = 'ADMIN'
+    logoutFailure = false
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
+    fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Draft soup' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Family accounts' }))
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'draft@example.com' } })
+    fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'ADMIN' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+
+    await screen.findByRole('button', { name: 'Sign in' })
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: account.email } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
+    expect(screen.getByLabelText('Meal name')).toHaveValue('')
+    fireEvent.click(screen.getByRole('button', { name: 'Family accounts' }))
+    expect(screen.getByLabelText('Email')).toHaveValue('')
+    expect(screen.getByLabelText('Role')).toHaveValue('MEMBER')
+  })
+
+  it('focuses the safe choice and returns focus on Escape', async () => {
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
+    fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Soup' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.getByRole('button', { name: 'Keep editing' })).toHaveFocus()
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Keep editing' }), { key: 'Escape' })
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus()
+    expect(screen.getByLabelText('Meal name')).toHaveValue('Soup')
+    expect(screen.queryByRole('button', { name: 'Discard changes' })).not.toBeInTheDocument()
+  })
+
+  it.each(['Meal name', 'Meal date', 'Location (optional)', 'Notes (optional)'])(
+    'protects a new draft when %s changes',
+    async (field) => {
+      render(<App />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
+      const value = field === 'Meal date' ? '2025-01-01' : 'Draft value'
+      fireEvent.change(screen.getByLabelText(field), { target: { value } })
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }))
+      expect(screen.getByLabelText(field)).toHaveValue(value)
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }))
+      expect(screen.getByRole('heading', { name: 'Meal journal' })).toBeInTheDocument()
+      expect(requests.some(({ init }) => init.method === 'POST')).toBe(false)
+      fireEvent.click(screen.getByRole('button', { name: 'Add meal' }))
+      expect(screen.getByLabelText('Meal name')).toHaveValue('')
+    },
+  )
+
+  it('cancels pristine and reverted forms without confirmation', async () => {
+    records = [{ ...soup }]
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Pumpkin soup' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit meal' }))
+    fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Changed' } })
+    fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: soup.name } })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.getByRole('heading', { name: soup.name })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Discard changes' })).not.toBeInTheDocument()
+  })
+
+  it('discards edits without changing the saved meal', async () => {
+    records = [{ ...soup }]
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: soup.name }))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit meal' }))
+    fireEvent.change(screen.getByLabelText('Notes (optional)'), { target: { value: 'Changed' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }))
+    expect(screen.getByText('Roasted first')).toBeInTheDocument()
+    expect(requests.some(({ init }) => init.method === 'PUT')).toBe(false)
+  })
+
   it('records an optional location for a meal', async () => {
     render(<App />)
     fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))

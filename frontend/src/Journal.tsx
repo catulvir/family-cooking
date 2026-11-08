@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { dishesApi, DishApiError, type Dish, type DishInput } from './api/dishes'
 
 type JournalView = { kind: 'list' } | { kind: 'detail'; dish: Dish } | { kind: 'form'; dish?: Dish }
@@ -135,12 +135,28 @@ function MealForm({
   onSaved: (dish: Dish) => void
 }) {
   const [name, setName] = useState(dish?.name ?? '')
-  const [preparedOn, setPreparedOn] = useState(dish?.preparedOn ?? localToday())
+  const [initialDate] = useState(() => dish?.preparedOn ?? localToday())
+  const [preparedOn, setPreparedOn] = useState(initialDate)
   const [location, setLocation] = useState(dish?.location ?? '')
   const [notes, setNotes] = useState(dish?.notes ?? '')
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
+  const cancelButton = useRef<HTMLButtonElement>(null)
+  const keepEditingButton = useRef<HTMLButtonElement>(null)
+  const dirty =
+    name !== (dish?.name ?? '') ||
+    preparedOn !== initialDate ||
+    location !== (dish?.location ?? '') ||
+    notes !== (dish?.notes ?? '')
+  useEffect(() => {
+    if (confirmDiscard) keepEditingButton.current?.focus()
+  }, [confirmDiscard])
+  const keepEditing = () => {
+    setConfirmDiscard(false)
+    cancelButton.current?.focus()
+  }
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     const trimmedName = name.trim()
@@ -219,10 +235,44 @@ function MealForm({
       )}
       <div className="form-actions">
         <button disabled={saving}>{saving ? 'Saving…' : 'Save meal'}</button>
-        <button type="button" className="secondary" onClick={onCancel} disabled={saving}>
+        <button
+          ref={cancelButton}
+          type="button"
+          className="secondary"
+          onClick={() => (dirty ? setConfirmDiscard(true) : onCancel())}
+          disabled={saving}
+        >
           Cancel
         </button>
       </div>
+      {confirmDiscard && (
+        <section aria-label="Unsaved changes">
+          <output>Discard your unsaved changes?</output>
+          <div className="form-actions">
+            <button
+              ref={keepEditingButton}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') keepEditing()
+              }}
+              type="button"
+              onClick={keepEditing}
+            >
+              Keep editing
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') keepEditing()
+              }}
+              disabled={saving}
+              onClick={onCancel}
+            >
+              Discard changes
+            </button>
+          </div>
+        </section>
+      )}
     </form>
   )
 }
