@@ -1,6 +1,6 @@
 # Milestone 4 — UI design agreement
 
-Status: design proposal ready for review, 2026-11-08. No application implementation in this milestone.
+Status: design direction accepted, 2026-11-08. The initial UI implementation and remaining work belong to [Milestone 5](milestone-5-plan.md). This document retains the original design reference; milestone 5 preserves the newer meal terminology and optional location field.
 
 Reference: the three Canva sketches supplied in chat (welcome, profile/home, recipe search). Their cream, terracotta, green, botanical decoration, and circular thumbnails define the visual direction.
 

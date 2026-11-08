@@ -149,8 +149,8 @@ Create the future `dish-photos` bucket as a private Supabase Storage bucket. The
 
 Milestones 1–3 provide the implemented foundation, private access, and cooking journal. The revised sequence prioritizes the cookbook UI and discovery experience:
 
-4. **UI design agreement** — screen layouts, visual system, navigation, responsive behaviour, and acceptance scenarios. [Design proposal and TDD handoff](docs/milestone-4-ui-design.md). Design review in progress; no application implementation in this milestone.
-5. **App shell and journal redesign** — apply the visual system to existing access, journal, and administration workflows, including accessible interaction states.
+4. **UI design agreement** — accepted direction for screen layouts, visual system, navigation, responsive behaviour, and acceptance scenarios. [Design reference and TDD handoff](docs/milestone-4-ui-design.md).
+5. **App shell and journal redesign** — in progress: initial styling, colour schema, icons, and draft-preserving views implemented. Remaining work covers form reliability, accessible navigation, visual consolidation, and browser review. [Implementation plan](docs/milestone-5-plan.md).
 6. **Recipe library and discovery** — reusable recipes, editable recipe ingredients, tags, search, filters, sorting, pagination, and optional recipe links from dishes.
 7. **Photos and personal profiles** — protected photos in private object storage, thumbnails, display names, and avatars.
 8. **Favourites and seasonal home** — personal favourites, shared curated collections, and recently cooked dishes.

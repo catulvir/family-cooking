@@ -1,4 +1,7 @@
-import { type FormEvent, useEffect, useState } from 'react'
+import { FormikProvider, useFormik } from 'formik'
+import { AppForm, FormField } from './forms'
+import { loginSchema, passwordSchema, accountSchema } from './formSchemas'
+import { useEffect, useState } from 'react'
 import { authApi, type CreatedUser, type CurrentUser, type ManagedUser } from './api/auth'
 import Journal from './Journal'
 import { BookOpen, ChefHat, LogOut, Users } from 'lucide-react'
@@ -58,47 +61,37 @@ function Login({
   onLoggedIn: (user: CurrentUser) => void
   setError: (message: string) => void
 }) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const submit = async (event: FormEvent) => {
-    event.preventDefault()
-    setSubmitting(true)
-    setError('')
-    try {
-      onLoggedIn(await authApi.login(email, password))
-    } catch (reason) {
-      setError(messageFrom(reason))
-    } finally {
-      setSubmitting(false)
-    }
-  }
+  const formik = useFormik({
+    initialValues: { email: '', password: '' },
+    validationSchema: loginSchema,
+    validateOnChange: false,
+    validateOnBlur: false,
+    onSubmit: async (values) => {
+      setError('')
+      try {
+        onLoggedIn(await authApi.login(values.email.trim(), values.password))
+      } catch (reason) {
+        setError(messageFrom(reason))
+      }
+    },
+  })
   return (
-    <form className="form" onSubmit={submit}>
-      <p className="intro">Sign in to your family’s private cooking space.</p>
-      <label>
-        Email
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
-          required
-        />
-      </label>
-      <label>
-        Password
-        <input
+    <FormikProvider value={formik}>
+      <AppForm>
+        <p className="intro">Sign in to your family's private cooking space.</p>
+        <FormField name="email" label="Email" type="email" autoComplete="email" />
+        <FormField
+          name="password"
+          label="Password"
           type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
           autoComplete="current-password"
-          required
         />
-      </label>
-      <button disabled={submitting}>{submitting ? 'Signing in…' : 'Sign in'}</button>
-      <p className="access-note">Ask the family administrator for an account.</p>
-    </form>
+        <button disabled={formik.isSubmitting}>
+          {formik.isSubmitting ? 'Signing in…' : 'Sign in'}
+        </button>
+        <p className="access-note">Ask the family administrator for an account.</p>
+      </AppForm>
+    </FormikProvider>
   )
 }
 
@@ -111,43 +104,41 @@ function PasswordChange({
   onChanged: (user: CurrentUser) => void
   setError: (message: string) => void
 }) {
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const submit = async (event: FormEvent) => {
-    event.preventDefault()
-    setError('')
-    try {
-      onChanged(await authApi.changePassword(currentPassword, newPassword))
-    } catch (reason) {
-      setError(messageFrom(reason))
-    }
-  }
+  const formik = useFormik({
+    initialValues: { currentPassword: '', newPassword: '' },
+    validationSchema: passwordSchema,
+    validateOnChange: false,
+    validateOnBlur: false,
+    onSubmit: async (values) => {
+      setError('')
+      try {
+        onChanged(await authApi.changePassword(values.currentPassword, values.newPassword))
+      } catch (reason) {
+        setError(messageFrom(reason))
+      }
+    },
+  })
   return (
-    <form className="form" onSubmit={submit}>
-      <p className="intro">Welcome, {user.email}. Set a new password before continuing.</p>
-      <label>
-        Temporary password
-        <input
+    <FormikProvider value={formik}>
+      <AppForm>
+        <p className="intro">Welcome, {user.email}. Set a new password before continuing.</p>
+        <FormField
+          name="currentPassword"
+          label="Temporary password"
           type="password"
-          value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
           autoComplete="current-password"
-          required
         />
-      </label>
-      <label>
-        New password <small>At least 12 characters</small>
-        <input
+        <FormField
+          name="newPassword"
+          label="New password (at least 12 characters)"
           type="password"
-          minLength={12}
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
           autoComplete="new-password"
-          required
         />
-      </label>
-      <button>Save new password</button>
-    </form>
+        <button disabled={formik.isSubmitting}>
+          {formik.isSubmitting ? 'Saving…' : 'Save new password'}
+        </button>
+      </AppForm>
+    </FormikProvider>
   )
 }
 
@@ -235,38 +226,39 @@ function UserManagement({
   setCreatedUser: (user: CreatedUser | null) => void
   setError: (message: string) => void
 }) {
-  const [email, setEmail] = useState('')
-  const [role, setRole] = useState<'ADMIN' | 'MEMBER'>('MEMBER')
-  const submit = async (event: FormEvent) => {
-    event.preventDefault()
-    setError('')
-    setCreatedUser(null)
-    try {
-      const created = await authApi.createUser(email, role)
-      setCreatedUser(created)
-      setUsers([...users, created].sort((a, b) => a.email.localeCompare(b.email)))
-      setEmail('')
-    } catch (reason) {
-      setError(messageFrom(reason))
-    }
-  }
+  const formik = useFormik({
+    initialValues: { email: '', role: 'MEMBER' as 'MEMBER' | 'ADMIN' },
+    validationSchema: accountSchema,
+    validateOnChange: false,
+    validateOnBlur: false,
+    onSubmit: async (values, helpers) => {
+      setError('')
+      setCreatedUser(null)
+      try {
+        const created = await authApi.createUser(values.email.trim(), values.role)
+        setCreatedUser(created)
+        setUsers([...users, created].sort((a, b) => a.email.localeCompare(b.email)))
+        helpers.resetForm({ values: { email: '', role: values.role } })
+      } catch (reason) {
+        setError(messageFrom(reason))
+      }
+    },
+  })
   return (
     <section className="management">
       <h2>Family accounts</h2>
-      <form className="form compact" onSubmit={submit}>
-        <label>
-          Email
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </label>
-        <label>
-          Role
-          <select value={role} onChange={(e) => setRole(e.target.value as 'ADMIN' | 'MEMBER')}>
+      <FormikProvider value={formik}>
+        <AppForm className="form compact">
+          <FormField name="email" label="Email" type="email" />
+          <FormField name="role" label="Role" as="select">
             <option value="MEMBER">Member</option>
             <option value="ADMIN">Administrator</option>
-          </select>
-        </label>
-        <button>Create account</button>
-      </form>
+          </FormField>
+          <button disabled={formik.isSubmitting}>
+            {formik.isSubmitting ? 'Creating…' : 'Create account'}
+          </button>
+        </AppForm>
+      </FormikProvider>
       {createdUser && (
         <aside className="temporary-password">
           <strong>Share this temporary password now:</strong>
