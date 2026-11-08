@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import { authApi, type CreatedUser, type CurrentUser, type ManagedUser } from './api/auth'
 import Journal from './Journal'
+import { BookOpen, ChefHat, LogOut, Users } from 'lucide-react'
 import './App.css'
 
 export default function App() {
@@ -17,9 +18,10 @@ export default function App() {
   }, [])
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell ${user && !user.mustChangePassword ? 'signed-in' : 'welcome'}`}>
       <section aria-labelledby="page-title" className="welcome-card">
-        <p className="eyebrow">Private family space</p>
+        <ChefHat className="brand-icon" aria-hidden="true" />
+        <p className="eyebrow">By Rozbergs · Private family space</p>
         <h1 id="page-title">Family Cooking Tracker</h1>
         {checkingSession ? (
           <p>Checking your session…</p>
@@ -95,6 +97,7 @@ function Login({
         />
       </label>
       <button disabled={submitting}>{submitting ? 'Signing in…' : 'Sign in'}</button>
+      <p className="access-note">Ask the family administrator for an account.</p>
     </form>
   )
 }
@@ -158,6 +161,7 @@ function Dashboard({
   setError: (message: string) => void
 }) {
   const [users, setUsers] = useState<ManagedUser[]>([])
+  const [view, setView] = useState<'journal' | 'accounts'>('journal')
   const [createdUser, setCreatedUser] = useState<CreatedUser | null>(null)
   useEffect(() => {
     if (user.role === 'ADMIN')
@@ -180,18 +184,39 @@ function Dashboard({
       <div className="account-row">
         <p className="intro">Signed in as {user.email}</p>
         <button className="secondary" onClick={logout}>
+          <LogOut size={18} aria-hidden="true" />
           Sign out
         </button>
       </div>
-      <Journal />
+      <nav className="primary-nav" aria-label="Main navigation">
+        <button
+          aria-current={view === 'journal' ? 'page' : undefined}
+          onClick={() => setView('journal')}
+        >
+          <BookOpen size={20} aria-hidden="true" /> Journal
+        </button>
+        {user.role === 'ADMIN' && (
+          <button
+            aria-current={view === 'accounts' ? 'page' : undefined}
+            onClick={() => setView('accounts')}
+          >
+            <Users size={20} aria-hidden="true" /> Family accounts
+          </button>
+        )}
+      </nav>
+      <div hidden={view !== 'journal'}>
+        <Journal />
+      </div>
       {user.role === 'ADMIN' && (
-        <UserManagement
-          users={users}
-          setUsers={setUsers}
-          createdUser={createdUser}
-          setCreatedUser={setCreatedUser}
-          setError={setError}
-        />
+        <div hidden={view !== 'accounts'}>
+          <UserManagement
+            users={users}
+            setUsers={setUsers}
+            createdUser={createdUser}
+            setCreatedUser={setCreatedUser}
+            setError={setError}
+          />
+        </div>
       )}
     </div>
   )

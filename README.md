@@ -147,9 +147,15 @@ Create the future `dish-photos` bucket as a private Supabase Storage bucket. The
 
 ## Next milestones
 
-1. Optional reviews and ratings with member ownership and administrator access.
-2. Recipes and independently editable recipe ingredients.
-3. Normalized dish ingredients and any/all/exclude ingredient search.
-4. Protected photo upload backed by private object storage.
-5. Filtering, pagination, and user experience improvements.
-6. Production deployment verification, backups, monitoring, and security hardening.
+Milestones 1–3 provide the implemented foundation, private access, and cooking journal. The revised sequence prioritizes the cookbook UI and discovery experience:
+
+4. **UI design agreement** — screen layouts, visual system, navigation, responsive behaviour, and acceptance scenarios. [Design proposal and TDD handoff](docs/milestone-4-ui-design.md). Design review in progress; no application implementation in this milestone.
+5. **App shell and journal redesign** — apply the visual system to existing access, journal, and administration workflows, including accessible interaction states.
+6. **Recipe library and discovery** — reusable recipes, editable recipe ingredients, tags, search, filters, sorting, pagination, and optional recipe links from dishes.
+7. **Photos and personal profiles** — protected photos in private object storage, thumbnails, display names, and avatars.
+8. **Favourites and seasonal home** — personal favourites, shared curated collections, and recently cooked dishes.
+9. **Ingredient-aware discovery** — normalized dish ingredients and any/all/exclude ingredient search, independently editable from recipes.
+10. **Reviews and ratings** — optional feedback with explicit visibility, member ownership, and administrator access; rankings only if compatible with review privacy.
+11. **Operational readiness** — deployment verification, backup/restore checks, monitoring, accessibility, performance, and security hardening.
+
+Authorization and privacy are required within every feature milestone. Implementation follows behaviour-first TDD: failing test, minimal implementation, then refactoring. Milestone 4 records acceptance scenarios rather than introducing premature executable tests.

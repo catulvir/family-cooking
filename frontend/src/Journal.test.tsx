@@ -207,14 +207,40 @@ describe('family cooking journal', () => {
     expect(await screen.findByText('No meals yet. Record your first meal.')).toBeInTheDocument()
   })
 
-  it('keeps administration available alongside the journal', async () => {
+  it('opens administration separately and preserves the journal draft on return', async () => {
     account.role = 'ADMIN'
     render(<App />)
     expect(await screen.findByRole('heading', { name: 'Meal journal' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Family accounts' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Add meal' }))
+    fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Draft soup' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Family accounts' }))
     expect(screen.getByRole('heading', { name: 'Family accounts' })).toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'Meal name' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Journal' }))
+    expect(screen.getByLabelText('Meal name')).toHaveValue('Draft soup')
     await waitFor(() =>
       expect(requests.some(({ path }) => path === '/api/v1/admin/users')).toBe(true),
     )
+  })
+
+  it('preserves the account email and administrator role across navigation', async () => {
+    account.role = 'ADMIN'
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Family accounts' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), {
+      target: { value: 'new-admin@example.com' },
+    })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Role' }), {
+      target: { value: 'ADMIN' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Journal' }))
+    expect(screen.queryByRole('textbox', { name: 'Email' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Role' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Family accounts' }))
+    expect(screen.getByRole('textbox', { name: 'Email' })).toHaveValue('new-admin@example.com')
+    expect(screen.getByRole('combobox', { name: 'Role' })).toHaveValue('ADMIN')
+    expect(requests.some(({ init }) => init.method === 'POST')).toBe(false)
   })
 
   it('does not fetch dishes before the forced password change', async () => {
