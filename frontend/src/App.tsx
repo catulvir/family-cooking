@@ -1,24 +1,43 @@
 import { FormikProvider, useFormik } from 'formik'
 import { AppForm, FormField } from './forms'
 import { loginSchema, passwordSchema, accountSchema } from './formSchemas'
-import { useEffect, useState } from 'react'
-import { authApi, type CreatedUser, type CurrentUser, type ManagedUser } from './api/auth'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import {
+  authApi,
+  AuthApiError,
+  type CreatedUser,
+  type CurrentUser,
+  type ManagedUser,
+} from './api/auth'
 import Journal from './Journal'
-import { BookOpen, ChefHat, LogOut, Users } from 'lucide-react'
+import { BookOpen, ChefHat, ChevronDown, LogOut, Users } from 'lucide-react'
 import './App.css'
 
 export default function App() {
   const [user, setUser] = useState<CurrentUser | null>(null)
   const [checkingSession, setCheckingSession] = useState(true)
   const [error, setError] = useState('')
+  const [sessionError, setSessionError] = useState(false)
 
   useEffect(() => {
+    if (!checkingSession) return
+    let cancelled = false
     authApi
       .currentUser()
-      .then(setUser)
-      .catch(() => undefined)
-      .finally(() => setCheckingSession(false))
-  }, [])
+      .then((current) => {
+        if (!cancelled) setUser(current)
+      })
+      .catch((reason) => {
+        if (!cancelled && !(reason instanceof AuthApiError && reason.status === 401))
+          setSessionError(true)
+      })
+      .finally(() => {
+        if (!cancelled) setCheckingSession(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [checkingSession])
 
   return (
     <main className={`app-shell ${user && !user.mustChangePassword ? 'signed-in' : 'welcome'}`}>
@@ -27,7 +46,21 @@ export default function App() {
         <p className="eyebrow">By Rozbergs · Private family space</p>
         <h1 id="page-title">Family Cooking Tracker</h1>
         {checkingSession ? (
-          <p>Checking your session…</p>
+          <output>Checking your session…</output>
+        ) : sessionError ? (
+          <div>
+            <p className="error" role="alert">
+              Could not check your session. Please try again.
+            </p>
+            <button
+              onClick={() => {
+                setSessionError(false)
+                setCheckingSession(true)
+              }}
+            >
+              Try again
+            </button>
+          </div>
         ) : user ? (
           user.mustChangePassword ? (
             <PasswordChange user={user} onChanged={setUser} setError={setError} />
@@ -154,12 +187,22 @@ function Dashboard({
   const [users, setUsers] = useState<ManagedUser[]>([])
   const [view, setView] = useState<'journal' | 'accounts'>('journal')
   const [createdUser, setCreatedUser] = useState<CreatedUser | null>(null)
+  const [accountOpen, setAccountOpen] = useState(false)
+  const accountButton = useRef<HTMLButtonElement>(null)
+  const accountDisclosure = useRef<HTMLElement>(null)
+  const accountHeading = useRef<HTMLHeadingElement>(null)
+  const journalPanel = useRef<HTMLDivElement>(null)
+  const [usersLoading, setUsersLoading] = useState(user.role === 'ADMIN')
+  useLayoutEffect(() => {
+    if (view === 'accounts') accountHeading.current?.focus()
+  }, [view])
   useEffect(() => {
     if (user.role === 'ADMIN')
       authApi
         .users()
         .then(setUsers)
         .catch((reason) => setError(messageFrom(reason)))
+        .finally(() => setUsersLoading(false))
   }, [user.role, setError])
   const logout = async () => {
     setError('')
@@ -170,37 +213,84 @@ function Dashboard({
       setError(messageFrom(reason))
     }
   }
+  const handleAccountKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'Escape' && accountOpen) {
+      event.preventDefault()
+      setAccountOpen(false)
+      accountButton.current?.focus()
+    }
+  }
+  const handleAccountBlur = (event: React.FocusEvent<HTMLButtonElement>) => {
+    if (!accountDisclosure.current?.contains(event.relatedTarget)) setAccountOpen(false)
+  }
   return (
     <div className="dashboard">
       <div className="account-row">
         <p className="intro">Signed in as {user.email}</p>
-        <button className="secondary" onClick={logout}>
-          <LogOut size={18} aria-hidden="true" />
-          Sign out
-        </button>
+        <section
+          ref={accountDisclosure}
+          className="account-disclosure"
+          aria-label="Account navigation"
+        >
+          <button
+            ref={accountButton}
+            id="account-button"
+            className="secondary"
+            aria-expanded={accountOpen}
+            aria-controls="account-actions"
+            onKeyDown={handleAccountKeyDown}
+            onBlur={handleAccountBlur}
+            onClick={() => setAccountOpen((open) => !open)}
+          >
+            Account <ChevronDown size={18} aria-hidden="true" />
+          </button>
+          <section id="account-actions" aria-labelledby="account-button" hidden={!accountOpen}>
+            {user.role === 'ADMIN' && (
+              <button
+                className="secondary"
+                onKeyDown={handleAccountKeyDown}
+                onBlur={handleAccountBlur}
+                aria-current={view === 'accounts' ? 'page' : undefined}
+                onClick={() => {
+                  setAccountOpen(false)
+                  setView('accounts')
+                  if (view === 'accounts') accountHeading.current?.focus()
+                }}
+              >
+                <Users size={20} aria-hidden="true" /> Family accounts
+              </button>
+            )}
+            <button
+              className="secondary"
+              onKeyDown={handleAccountKeyDown}
+              onBlur={handleAccountBlur}
+              onClick={logout}
+            >
+              <LogOut size={18} aria-hidden="true" /> Sign out
+            </button>
+          </section>
+        </section>
       </div>
       <nav className="primary-nav" aria-label="Main navigation">
         <button
           aria-current={view === 'journal' ? 'page' : undefined}
-          onClick={() => setView('journal')}
+          onClick={() => {
+            setAccountOpen(false)
+            setView('journal')
+            if (view === 'journal') journalPanel.current?.querySelector('h2')?.focus()
+          }}
         >
           <BookOpen size={20} aria-hidden="true" /> Journal
         </button>
-        {user.role === 'ADMIN' && (
-          <button
-            aria-current={view === 'accounts' ? 'page' : undefined}
-            onClick={() => setView('accounts')}
-          >
-            <Users size={20} aria-hidden="true" /> Family accounts
-          </button>
-        )}
       </nav>
-      <div hidden={view !== 'journal'}>
-        <Journal />
+      <div ref={journalPanel} hidden={view !== 'journal'}>
+        <Journal active={view === 'journal'} />
       </div>
       {user.role === 'ADMIN' && (
         <div hidden={view !== 'accounts'}>
           <UserManagement
+            headingRef={accountHeading}
+            loading={usersLoading}
             users={users}
             setUsers={setUsers}
             createdUser={createdUser}
@@ -214,12 +304,16 @@ function Dashboard({
 }
 
 function UserManagement({
+  headingRef,
+  loading,
   users,
   setUsers,
   createdUser,
   setCreatedUser,
   setError,
 }: {
+  headingRef: React.Ref<HTMLHeadingElement>
+  loading: boolean
   users: ManagedUser[]
   setUsers: (users: ManagedUser[]) => void
   createdUser: CreatedUser | null
@@ -245,8 +339,17 @@ function UserManagement({
     },
   })
   return (
-    <section className="management">
-      <h2>Family accounts</h2>
+    <section className="management" aria-labelledby="accounts-title">
+      <h2 ref={headingRef} id="accounts-title" tabIndex={-1}>
+        Family accounts
+      </h2>
+      <output>
+        {loading
+          ? 'Loading family accounts…'
+          : createdUser
+            ? 'Account created. Share the temporary password below.'
+            : ''}
+      </output>
       <FormikProvider value={formik}>
         <AppForm className="form compact">
           <FormField name="email" label="Email" type="email" />

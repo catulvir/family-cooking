@@ -1,6 +1,6 @@
 # Milestone 5 — App shell and journal redesign
 
-Status: partly implemented; remaining work planned. Updated 2026-11-08.
+Status: slices 5.1–5.3 implemented; visual consolidation and browser review remain. Updated 2026-11-08.
 
 ## Outcome
 
@@ -60,6 +60,12 @@ TDD: the new accessible login-validation test failed before migration. Existing 
 
 ### 5.3 — Accessible navigation and feedback
 
+Implemented: labelled Account disclosure with ordinary buttons, expanded state, Escape focus return, and dismissal when focus leaves. Family accounts is administrator-only; Journal remains in primary navigation. Mounted panels continue to preserve drafts, and forced-password-change users have no protected navigation.
+
+Journal list, detail, and form screens now have valid heading references. Screen changes focus the destination heading; Back returns to the meal entry, and Cancel/Discard returns to Add meal or Edit meal. Background loads and hidden save/validation results do not steal focus. Loading and successful meal/account saves use status feedback; failures retain alerts. Session checks distinguish HTTP 401 from network/server failures and offer retry for the latter.
+
+TDD: nine new acceptance cases failed before implementation; the existing unauthenticated-response case passed. Added a further hidden-validation focus regression and retained all previous draft, authorization, submission, and retry assertions through the new Account entry point. Verification: 53 frontend tests, lint, formatting, and production build passed. Browser keyboard, visual, and assistive-technology review is still pending; automated DOM/focus checks do not replace it.
+
 Finish the agreed account menu: Journal stays in primary navigation; an Account button opens Family accounts for administrators and Sign out for all active members. Profile is omitted until milestone 7. Use a labelled disclosure with normal buttons, rather than an ARIA menu unless full menu keyboard behaviour is implemented. Preserve the mounted draft panels when changing entry points.
 
 Fix the journal region's accessible heading reference: currently `journal-title` only exists in list view. Ensure list, detail, and form each have a valid accessible heading. Move focus intentionally after changing screens, opening details, saving, and returning, without stealing focus on background loads.
@@ -108,4 +114,4 @@ Recipes, tags/search, pagination, photos, avatars/profile editing, favourites, s
 
 Milestone 5 is complete when existing access/journal/account workflows use the agreed design, the remaining behaviour scenarios pass, and desktop/mobile/keyboard review is recorded. The first styling pass and green unit tests alone do not close this milestone.
 
-Recommended next implementation slice: **5.3**, accessible account navigation and feedback.
+Recommended next implementation slice: **5.4**, visual consolidation and responsive review.

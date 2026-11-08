@@ -307,6 +307,7 @@ button:hover:not(:disabled) {
   background: var(--primary-hover-color);
 }
 button:focus-visible,
+h2:focus,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
@@ -329,6 +330,7 @@ textarea {
 }
 .primary-nav button {
   background: transparent;
+  color: var(--heading-color);
   border: 1px solid var(--input-border-color);
 }
 .primary-nav button[aria-current] {
@@ -411,4 +413,38 @@ h2 {
 }
 .form-field .field-error {
   margin: 0;
+}
+
+.account-disclosure {
+  position: relative;
+}
+
+#account-actions {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  display: grid;
+  gap: 0.5rem;
+  width: max-content;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--surface-color);
+  box-shadow: 0 0.5rem 1.5rem var(--shadow-color);
+}
+
+output {
+  display: block;
+  margin-block: 1rem;
+}
+
+output:empty {
+  margin: 0;
+}
+
+@media (max-width: 38rem) {
+  #account-actions {
+    left: 0;
+    right: auto;
+  }
 }

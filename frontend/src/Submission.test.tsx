@@ -1,13 +1,13 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import App from './App'
-import { authApi } from './api/auth'
+import { authApi, AuthApiError } from './api/auth'
 import { dishesApi, DishApiError } from './api/dishes'
 
 afterEach(() => vi.restoreAllMocks())
 
 it('rejects invalid login values with accessible errors before contacting the API', async () => {
-  vi.spyOn(authApi, 'currentUser').mockRejectedValue(new Error('Signed out'))
+  vi.spyOn(authApi, 'currentUser').mockRejectedValue(new AuthApiError('Signed out', 401))
   const login = vi.spyOn(authApi, 'login')
   render(<App />)
   const submit = await screen.findByRole('button', { name: 'Sign in' })
@@ -41,6 +41,7 @@ it('preserves the account draft on failure and shows the password on successful 
       temporaryPassword: 'temporary-secret',
     })
   render(<App />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Account' }))
   fireEvent.click(await screen.findByRole('button', { name: 'Family accounts' }))
   fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'new@example.com' } })
   fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'ADMIN' } })
@@ -87,7 +88,7 @@ it.each(['login', 'password', 'account', 'meal'] as const)(
       mustChangePassword: kind === 'password',
     }
     vi.spyOn(authApi, 'currentUser').mockImplementation(async () => {
-      if (kind === 'login') throw new Error('Signed out')
+      if (kind === 'login') throw new AuthApiError('Signed out', 401)
       return user
     })
     vi.spyOn(authApi, 'users').mockResolvedValue([])
@@ -111,8 +112,10 @@ it.each(['login', 'password', 'account', 'meal'] as const)(
       account: 'Create account',
       meal: 'Save meal',
     }
-    if (kind === 'account')
+    if (kind === 'account') {
+      fireEvent.click(await screen.findByRole('button', { name: 'Account' }))
       fireEvent.click(await screen.findByRole('button', { name: 'Family accounts' }))
+    }
     if (kind === 'meal') fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
     const button = await screen.findByRole('button', { name: labels[kind] })
     const form = button.closest('form')!
