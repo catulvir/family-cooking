@@ -1,6 +1,6 @@
 # Milestone 5 — App shell and journal redesign
 
-Status: slices 5.1–5.3 implemented; visual consolidation and browser review remain. Updated 2026-11-08.
+Status: complete through 5.5, verified locally on 2026-11-08. [Final verification and handoff](milestone-5-handoff.md).
 
 ## Outcome
 
@@ -8,7 +8,7 @@ Family members can sign in, record and edit meals, and move around the journal c
 
 This plan completes the work already started after the milestone 4 design agreement. It does not restart the redesign. Preserve the current **meal** terminology and optional **location** field, which supersede the earlier wireframe's dish labels. Backend dish terminology and API contracts remain unchanged.
 
-## Baseline already implemented
+## Historical baseline before the ordered slices
 
 - Shared visual styling, Lucide icons, responsive layout rules, and visible focus outlines.
 - Central colour schema in `frontend/src/colors.css`, consumed by `App.css`.
@@ -24,7 +24,7 @@ Each behaviour change starts with a failing test, followed by the smallest imple
 
 ### 5.1 — Draft and navigation contract
 
-Implemented: inline Keep editing / Discard changes confirmation for changed meal forms, immediate cancellation for pristine or reverted forms, safe-choice focus and Escape return. Regression coverage verifies create/edit cancellation, all four meal fields, preservation across navigation and failed logout, and clearing both drafts after successful logout/login. Frontend verification: 23 tests, lint, formatting, and build passed. Browser visual review remains in 5.4.
+Implemented: inline Keep editing / Discard changes confirmation for changed meal forms, immediate cancellation for pristine or reverted forms, safe-choice focus and Escape return. Regression coverage verifies create/edit cancellation, all four meal fields, preservation across navigation and failed logout, and clearing both drafts after successful logout/login. Frontend verification: 23 tests, lint, formatting, and build passed. Browser visual review was subsequently completed in 5.4.
 
 Keep view switching non-destructive. Preserve drafts in memory within the authenticated session; reload persistence is out of scope. Sign out clears drafts by unmounting the authenticated interface. Explicit cancellation discards a meal draft; a changed form should offer Keep editing / Discard changes before doing so. A pristine form cancels immediately. Account drafts continue to clear their email after successful creation as today.
 
@@ -40,7 +40,7 @@ Acceptance/tests:
 
 Implemented: synchronous submission guards for login, password change, account creation, and meal saves; pending buttons and retry recovery; client meal-name/date validation; accessible server/client field errors and first-invalid-field focus. Regression tests cover deferred repeated submissions, account draft retention and successful temporary-password display, and all four meal field error associations. Verification: 33 frontend tests, lint, formatting, and production build passed.
 
-Apply consistent pending and error behaviour to login, required password change, meal saves, and account creation. Meal saves already disable actions; account creation and password change still need pending-state protection. Errors must preserve entered values. Associate every field-level error with its input using stable IDs and `aria-describedby`, mark invalid inputs, and focus the first invalid field after validation.
+Apply consistent pending and error behaviour to login, required password change, meal saves, and account creation, with pending-state protection for all four forms. Errors must preserve entered values. Associate every field-level error with its input using stable IDs and `aria-describedby`, mark invalid inputs, and focus the first invalid field after validation.
 
 Acceptance/tests:
 
@@ -56,7 +56,7 @@ Implemented: login, password change, account creation, and meal editing now use 
 
 Validation runs on submission; raw editable values stay in Formik. Meal API mapping explicitly trims text and converts optional blanks to null. Dates remain calendar strings, and passwords are never trimmed. Mounted panels preserve drafts; Formik reinitialization is not enabled. The shared lock covers validation and the request, including immediate repeated submissions.
 
-TDD: the new accessible login-validation test failed before migration. Existing submission tests now provide valid credentials; focus tests await asynchronous validation. All previous behaviour assertions remain. Added calendar-date and password schema checks. Verification: 42 tests, lint, formatting, and production build passed. Browser visual review remains in 5.4.
+TDD: the new accessible login-validation test failed before migration. Existing submission tests now provide valid credentials; focus tests await asynchronous validation. All previous behaviour assertions remain. Added calendar-date and password schema checks. Verification: 42 tests, lint, formatting, and production build passed. Browser visual review was subsequently completed in 5.4.
 
 ### 5.3 — Accessible navigation and feedback
 
@@ -64,11 +64,11 @@ Implemented: labelled Account disclosure with ordinary buttons, expanded state, 
 
 Journal list, detail, and form screens now have valid heading references. Screen changes focus the destination heading; Back returns to the meal entry, and Cancel/Discard returns to Add meal or Edit meal. Background loads and hidden save/validation results do not steal focus. Loading and successful meal/account saves use status feedback; failures retain alerts. Session checks distinguish HTTP 401 from network/server failures and offer retry for the latter.
 
-TDD: nine new acceptance cases failed before implementation; the existing unauthenticated-response case passed. Added a further hidden-validation focus regression and retained all previous draft, authorization, submission, and retry assertions through the new Account entry point. Verification: 53 frontend tests, lint, formatting, and production build passed. Browser keyboard, visual, and assistive-technology review is still pending; automated DOM/focus checks do not replace it.
+TDD: nine new acceptance cases failed before implementation; the existing unauthenticated-response case passed. Added a further hidden-validation focus regression and retained all previous draft, authorization, submission, and retry assertions through the new Account entry point. Verification: 53 frontend tests, lint, formatting, and production build passed. Browser keyboard and visual review was subsequently completed in 5.4. A screen-reader audit was not performed; automated DOM/focus checks do not replace it.
 
 Finish the agreed account menu: Journal stays in primary navigation; an Account button opens Family accounts for administrators and Sign out for all active members. Profile is omitted until milestone 7. Use a labelled disclosure with normal buttons, rather than an ARIA menu unless full menu keyboard behaviour is implemented. Preserve the mounted draft panels when changing entry points.
 
-Fix the journal region's accessible heading reference: currently `journal-title` only exists in list view. Ensure list, detail, and form each have a valid accessible heading. Move focus intentionally after changing screens, opening details, saving, and returning, without stealing focus on background loads.
+Ensure list, detail, and form each have a valid accessible heading reference. Move focus intentionally after changing screens, opening details, saving, and returning, without stealing focus on background loads.
 
 Acceptance/tests:
 
@@ -80,6 +80,10 @@ Acceptance/tests:
 - A network failure while checking the session offers retry rather than silently looking like a signed-out session. An actual unauthenticated response shows login.
 
 ### 5.4 — Visual consolidation and responsive review
+
+Implemented: consolidated the stylesheet, introduced semantic navigation/selected/hover/disabled colors, corrected selected-navigation hover contrast, strengthened control borders, and aligned headings/forms/actions. Added an original decorative botanical SVG alongside the chef motif and labelled Lucide meal actions. Tablet account forms and narrow action rows reflow; long content wraps.
+
+Review completed in Chrome at 360px, 768px, 1280px, and actual 200% browser zoom: 88 screenshots across 22 states, with visual inspection and real-browser keyboard flows. No horizontal overflow, clipped controls, targets below 44px, or contrast failures in the reviewed cases. Verification: 53 frontend tests, lint, formatting, and production build passed. [Review report, screenshots, measurements, and reproduction script](reviews/milestone-5.4/README.md). This review uses synthetic API fixtures; screen-reader and other-browser audits were not performed.
 
 Consolidate duplicated selectors and superseded rules in `App.css` while preserving appearance. Continue sourcing all theme colours from `colors.css`; add semantic tokens for navigation/selected states where they currently borrow text or field tokens. Check active navigation hover contrast as well as ordinary button states.
 
@@ -99,6 +103,8 @@ Pass criteria: no horizontal page scrolling or clipped controls, readable wrappi
 
 ### 5.5 — Verification and handoff
 
+Completed: final frontend verification passed (53 tests, lint, formatting, TypeScript/Vite build, and diff whitespace check). Corrected a timing-sensitive validation-focus assertion to await Formik's asynchronous completion; all existing assertions are retained. Audited the 88 browser captures and regression coverage, confirmed no backend/schema changes, and updated project status. No unresolved blocking defects in the reviewed scope. [Final handoff, evidence, and coverage limits](milestone-5-handoff.md).
+
 - Run frontend tests, lint, formatting, and production build after the final implementation changes.
 - Retain existing ownership, session-expiry, CSRF-request, meal ordering, and retry regressions. Server authorization remains the authority; hiding controls is not authorization.
 - No backend/schema changes are expected. If scope requires them, add appropriate API tests and backend verification.
@@ -114,4 +120,4 @@ Recipes, tags/search, pagination, photos, avatars/profile editing, favourites, s
 
 Milestone 5 is complete when existing access/journal/account workflows use the agreed design, the remaining behaviour scenarios pass, and desktop/mobile/keyboard review is recorded. The first styling pass and green unit tests alone do not close this milestone.
 
-Recommended next implementation slice: **5.4**, visual consolidation and responsive review.
+All milestone 5 slices are complete. Next: **milestone 6**, recipe library and discovery, beginning with its behaviour and permission contract.

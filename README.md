@@ -4,7 +4,7 @@ Private, family-only web application for recording family meals and notable food
 
 ## Current milestone
 
-Milestone 5 is in progress, with slices 5.1–5.3 implemented on top of the private family cooking journal:
+Milestone 5 is complete, including final verification and handoff for the redesigned private family cooking journal:
 
 - Record a meal with its name, date, optional location, and optional notes.
 - Browse the shared family journal, ordered by preparation date and then entry time.
@@ -13,7 +13,7 @@ Milestone 5 is in progress, with slices 5.1–5.3 implemented on top of the priv
 - Preserve drafts across views, validate forms accessibly, and prevent duplicate submissions.
 - Use the Account disclosure for account management and sign out, with screen focus, loading/save feedback, and session-check retry.
 
-Visual consolidation and desktop/mobile browser review remain in milestone 5.4. See the [implementation plan](docs/milestone-5-plan.md).
+Final verification passed: 53 frontend tests, lint, formatting, and production build. The Chrome responsive/keyboard review includes actual 200% zoom. See the [final handoff and coverage limits](docs/milestone-5-handoff.md), [review report and screenshots](docs/reviews/milestone-5.4/README.md), and [completed implementation plan](docs/milestone-5-plan.md). Next is milestone 6, recipe library and discovery.
 
 There is deliberately no email delivery, invitation token, password-reset, MFA, direct browser connection to Supabase, dish deletion, recipes, reviews, ratings, ingredients, or photos.
 
@@ -154,7 +154,7 @@ Create the future `dish-photos` bucket as a private Supabase Storage bucket. The
 Milestones 1–3 provide the implemented foundation, private access, and cooking journal. The revised sequence prioritizes the cookbook UI and discovery experience:
 
 4. **UI design agreement** — accepted direction for screen layouts, visual system, navigation, responsive behaviour, and acceptance scenarios. [Design reference and TDD handoff](docs/milestone-4-ui-design.md).
-5. **App shell and journal redesign** — in progress: styling, draft preservation, shared Formik/Yup forms, accessible account navigation, screen focus, and status feedback implemented through 5.3. Remaining work covers visual consolidation, browser review, and final handoff. [Implementation plan](docs/milestone-5-plan.md).
+5. **App shell and journal redesign** — complete: consolidated styling, botanical decoration, draft preservation, shared Formik/Yup forms, accessible navigation/focus/feedback, responsive browser review, and final verification. [Handoff](docs/milestone-5-handoff.md).
 6. **Recipe library and discovery** — reusable recipes, editable recipe ingredients, tags, search, filters, sorting, pagination, and optional recipe links from dishes.
 7. **Photos and personal profiles** — protected photos in private object storage, thumbnails, display names, and avatars.
 8. **Favourites and seasonal home** — personal favourites, shared curated collections, and recently cooked dishes.

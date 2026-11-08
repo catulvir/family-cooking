@@ -15,7 +15,7 @@ it('rejects invalid login values with accessible errors before contacting the AP
   fireEvent.submit(submit.closest('form')!)
   expect(await screen.findByText('Enter a valid email address.')).toBeInTheDocument()
   expect(screen.getByLabelText('Email')).toHaveAccessibleDescription('Enter a valid email address.')
-  expect(screen.getByLabelText('Email')).toHaveFocus()
+  await waitFor(() => expect(screen.getByLabelText('Email')).toHaveFocus())
   expect(login).not.toHaveBeenCalled()
 })
 
@@ -74,7 +74,7 @@ it.each([
   await screen.findByText('Please correct this field.')
   expect(screen.getByLabelText(label)).toHaveAccessibleDescription('Please correct this field.')
   expect(screen.getByLabelText(label)).toHaveAttribute('aria-invalid', 'true')
-  expect(screen.getByLabelText(label)).toHaveFocus()
+  await waitFor(() => expect(screen.getByLabelText(label)).toHaveFocus())
 })
 
 it.each(['login', 'password', 'account', 'meal'] as const)(
