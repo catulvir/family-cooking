@@ -38,6 +38,8 @@ Acceptance/tests:
 
 ### 5.2 — Reliable form submission and validation
 
+Implemented: synchronous submission guards for login, password change, account creation, and meal saves; pending buttons and retry recovery; client meal-name/date validation; accessible server/client field errors and first-invalid-field focus. Regression tests cover deferred repeated submissions, account draft retention and successful temporary-password display, and all four meal field error associations. Verification: 33 frontend tests, lint, formatting, and production build passed.
+
 Apply consistent pending and error behaviour to login, required password change, meal saves, and account creation. Meal saves already disable actions; account creation and password change still need pending-state protection. Errors must preserve entered values. Associate every field-level error with its input using stable IDs and `aria-describedby`, mark invalid inputs, and focus the first invalid field after validation.
 
 Acceptance/tests:
@@ -47,6 +49,14 @@ Acceptance/tests:
 - Blank meal names and missing/invalid dates are handled before saving; server validation remains authoritative.
 - Name, date, location, and notes errors are associated with the correct controls.
 - Failed account creation retains email and selected role; successful creation displays the returned temporary password without another creation request.
+
+### 5.2b — Standardise forms with Formik and Yup
+
+Implemented: login, password change, account creation, and meal editing now use Formik for values, errors, dirty state, and pending state. Shared `AppForm` and `FormField` components provide submission locking, first-error focus, stable accessible field IDs, and consistent input/select/textarea feedback. Validation schemas are centralized in `frontend/src/formSchemas.ts`.
+
+Validation runs on submission; raw editable values stay in Formik. Meal API mapping explicitly trims text and converts optional blanks to null. Dates remain calendar strings, and passwords are never trimmed. Mounted panels preserve drafts; Formik reinitialization is not enabled. The shared lock covers validation and the request, including immediate repeated submissions.
+
+TDD: the new accessible login-validation test failed before migration. Existing submission tests now provide valid credentials; focus tests await asynchronous validation. All previous behaviour assertions remain. Added calendar-date and password schema checks. Verification: 42 tests, lint, formatting, and production build passed. Browser visual review remains in 5.4.
 
 ### 5.3 — Accessible navigation and feedback
 
@@ -98,4 +108,4 @@ Recipes, tags/search, pagination, photos, avatars/profile editing, favourites, s
 
 Milestone 5 is complete when existing access/journal/account workflows use the agreed design, the remaining behaviour scenarios pass, and desktop/mobile/keyboard review is recorded. The first styling pass and green unit tests alone do not close this milestone.
 
-Recommended next implementation slice: **5.2**, establishing reliable submission behaviour before changing account navigation.
+Recommended next implementation slice: **5.3**, accessible account navigation and feedback.

@@ -6,6 +6,19 @@ import { dishesApi, DishApiError } from './api/dishes'
 
 afterEach(() => vi.restoreAllMocks())
 
+it('rejects invalid login values with accessible errors before contacting the API', async () => {
+  vi.spyOn(authApi, 'currentUser').mockRejectedValue(new Error('Signed out'))
+  const login = vi.spyOn(authApi, 'login')
+  render(<App />)
+  const submit = await screen.findByRole('button', { name: 'Sign in' })
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'invalid' } })
+  fireEvent.submit(submit.closest('form')!)
+  expect(await screen.findByText('Enter a valid email address.')).toBeInTheDocument()
+  expect(screen.getByLabelText('Email')).toHaveAccessibleDescription('Enter a valid email address.')
+  expect(screen.getByLabelText('Email')).toHaveFocus()
+  expect(login).not.toHaveBeenCalled()
+})
+
 const admin = {
   id: 'admin',
   email: 'admin@example.com',
@@ -107,6 +120,18 @@ it.each(['login', 'password', 'account', 'meal'] as const)(
       fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Soup' } })
     if (kind === 'account' || kind === 'login')
       fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'new@example.com' } })
+    if (kind === 'login')
+      fireEvent.change(screen.getByLabelText('Password'), {
+        target: { value: 'existing-password' },
+      })
+    if (kind === 'password') {
+      fireEvent.change(screen.getByLabelText('Temporary password'), {
+        target: { value: 'temporary-password' },
+      })
+      fireEvent.change(screen.getByLabelText(/New password/), {
+        target: { value: 'replacement-password' },
+      })
+    }
     fireEvent.submit(form)
     fireEvent.submit(form)
     await waitFor(() => expect(mutation).toHaveBeenCalledTimes(1))

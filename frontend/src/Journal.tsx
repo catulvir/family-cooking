@@ -1,4 +1,7 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { FormikProvider, useFormik } from 'formik'
+import { AppForm, FormField, FormError } from './forms'
+import { mealSchema, type MealValues } from './formSchemas'
 import { dishesApi, DishApiError, type Dish, type DishInput } from './api/dishes'
 
 type JournalView = { kind: 'list' } | { kind: 'detail'; dish: Dish } | { kind: 'form'; dish?: Dish }
@@ -134,28 +137,36 @@ function MealForm({
   onCancel: () => void
   onSaved: (dish: Dish) => void
 }) {
-  const [name, setName] = useState(dish?.name ?? '')
-  const [initialDate] = useState(() => dish?.preparedOn ?? localToday())
-  const [preparedOn, setPreparedOn] = useState(initialDate)
-  const [location, setLocation] = useState(dish?.location ?? '')
-  const [notes, setNotes] = useState(dish?.notes ?? '')
-  const [error, setError] = useState('')
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-  const [saving, setSaving] = useState(false)
-  const inFlight = useRef(false)
-  const formRef = useRef<HTMLFormElement>(null)
-  useEffect(() => {
-    if (Object.keys(fieldErrors).length)
-      formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
-  }, [fieldErrors])
+  const [initialValues] = useState<MealValues>(() => ({
+    name: dish?.name ?? '',
+    preparedOn: dish?.preparedOn ?? localToday(),
+    location: dish?.location ?? '',
+    notes: dish?.notes ?? '',
+  }))
+  const formik = useFormik({
+    initialValues,
+    validationSchema: mealSchema,
+    validateOnChange: false,
+    validateOnBlur: false,
+    onSubmit: async (values, helpers) => {
+      const input: DishInput = {
+        name: values.name.trim(),
+        preparedOn: values.preparedOn,
+        location: values.location.trim() || null,
+        notes: values.notes.trim() || null,
+      }
+      try {
+        onSaved(dish ? await dishesApi.update(dish.id, input) : await dishesApi.create(input))
+      } catch (reason) {
+        helpers.setStatus(messageFrom(reason))
+        if (reason instanceof DishApiError) helpers.setErrors(reason.fieldErrors)
+      }
+    },
+  })
+  const { dirty, isSubmitting: saving } = formik
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const cancelButton = useRef<HTMLButtonElement>(null)
   const keepEditingButton = useRef<HTMLButtonElement>(null)
-  const dirty =
-    name !== (dish?.name ?? '') ||
-    preparedOn !== initialDate ||
-    location !== (dish?.location ?? '') ||
-    notes !== (dish?.notes ?? '')
   useEffect(() => {
     if (confirmDiscard) keepEditingButton.current?.focus()
   }, [confirmDiscard])
@@ -163,155 +174,57 @@ function MealForm({
     setConfirmDiscard(false)
     cancelButton.current?.focus()
   }
-  const submit = async (event: FormEvent) => {
-    event.preventDefault()
-    if (inFlight.current) return
-    const trimmedName = name.trim()
-    const errors: Record<string, string> = {}
-    if (!trimmedName) errors.name = 'Enter a meal name.'
-    const parsedDate = new Date(`${preparedOn}T00:00:00Z`)
-    if (
-      !/^\d{4}-\d{2}-\d{2}$/.test(preparedOn) ||
-      Number.isNaN(parsedDate.getTime()) ||
-      parsedDate.toISOString().slice(0, 10) !== preparedOn
-    )
-      errors.preparedOn = 'Enter a valid meal date.'
-    setError('')
-    if (Object.keys(errors).length) {
-      setFieldErrors(errors)
-      return
-    }
-    inFlight.current = true
-    setSaving(true)
-    setError('')
-    setFieldErrors({})
-    const input: DishInput = {
-      name: trimmedName,
-      preparedOn,
-      location: location.trim() || null,
-      notes: notes.trim() || null,
-    }
-    try {
-      onSaved(dish ? await dishesApi.update(dish.id, input) : await dishesApi.create(input))
-    } catch (reason) {
-      if (reason instanceof DishApiError) {
-        setError(reason.message)
-        setFieldErrors(reason.fieldErrors)
-      } else setError(messageFrom(reason))
-    } finally {
-      inFlight.current = false
-      setSaving(false)
-    }
-  }
   return (
-    <form ref={formRef} className="form dish-form" onSubmit={submit} noValidate>
-      <h2>{dish ? 'Edit meal' : 'Record a meal'}</h2>
-      <label>
-        Meal name
-        <input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          aria-describedby={fieldErrors.name ? 'meal-name-error' : undefined}
-          aria-invalid={!!fieldErrors.name}
-        />
-      </label>
-      {fieldErrors.name && (
-        <p className="field-error" id="meal-name-error">
-          {fieldErrors.name}
-        </p>
-      )}
-      <label>
-        Meal date
-        <input
-          type="date"
-          aria-invalid={!!fieldErrors.preparedOn}
-          aria-describedby={fieldErrors.preparedOn ? 'meal-date-error' : undefined}
-          value={preparedOn}
-          onChange={(event) => setPreparedOn(event.target.value)}
-          required
-        />
-      </label>
-      {fieldErrors.preparedOn && (
-        <p id="meal-date-error" className="field-error">
-          {fieldErrors.preparedOn}
-        </p>
-      )}
-      <label>
-        Location (optional)
-        <input
-          value={location}
-          aria-invalid={!!fieldErrors.location}
-          aria-describedby={fieldErrors.location ? 'meal-location-error' : undefined}
-          onChange={(event) => setLocation(event.target.value)}
-          maxLength={200}
-        />
-      </label>
-      {fieldErrors.location && (
-        <p id="meal-location-error" className="field-error">
-          {fieldErrors.location}
-        </p>
-      )}
-      <label>
-        Notes (optional)
-        <textarea
-          value={notes}
-          aria-invalid={!!fieldErrors.notes}
-          aria-describedby={fieldErrors.notes ? 'meal-notes-error' : undefined}
-          onChange={(event) => setNotes(event.target.value)}
-          maxLength={5000}
-        />
-      </label>
-      {fieldErrors.notes && (
-        <p id="meal-notes-error" className="field-error">
-          {fieldErrors.notes}
-        </p>
-      )}
-      {error && (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      )}
-      <div className="form-actions">
-        <button disabled={saving}>{saving ? 'Saving…' : 'Save meal'}</button>
-        <button
-          ref={cancelButton}
-          type="button"
-          className="secondary"
-          onClick={() => (dirty ? setConfirmDiscard(true) : onCancel())}
-          disabled={saving}
-        >
-          Cancel
-        </button>
-      </div>
-      {confirmDiscard && (
-        <section aria-label="Unsaved changes">
-          <output>Discard your unsaved changes?</output>
-          <div className="form-actions">
-            <button
-              ref={keepEditingButton}
-              onKeyDown={(event) => {
-                if (event.key === 'Escape') keepEditing()
-              }}
-              type="button"
-              onClick={keepEditing}
-            >
-              Keep editing
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              onKeyDown={(event) => {
-                if (event.key === 'Escape') keepEditing()
-              }}
-              disabled={saving}
-              onClick={onCancel}
-            >
-              Discard changes
-            </button>
-          </div>
-        </section>
-      )}
-    </form>
+    <FormikProvider value={formik}>
+      <AppForm className="form dish-form">
+        <h2>{dish ? 'Edit meal' : 'Record a meal'}</h2>
+        <FormField name="name" label="Meal name" />
+        <FormField name="preparedOn" label="Meal date" type="date" />
+        <FormField name="location" label="Location (optional)" maxLength={200} />
+        <FormField name="notes" label="Notes (optional)" as="textarea" maxLength={5000} />
+        <FormError />
+        <div className="form-actions">
+          <button disabled={saving}>{saving ? 'Saving…' : 'Save meal'}</button>
+          <button
+            ref={cancelButton}
+            type="button"
+            className="secondary"
+            onClick={() => (dirty ? setConfirmDiscard(true) : onCancel())}
+            disabled={saving}
+          >
+            Cancel
+          </button>
+        </div>
+        {confirmDiscard && (
+          <section aria-label="Unsaved changes">
+            <output>Discard your unsaved changes?</output>
+            <div className="form-actions">
+              <button
+                ref={keepEditingButton}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') keepEditing()
+                }}
+                type="button"
+                onClick={keepEditing}
+              >
+                Keep editing
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') keepEditing()
+                }}
+                disabled={saving}
+                onClick={onCancel}
+              >
+                Discard changes
+              </button>
+            </div>
+          </section>
+        )}
+      </AppForm>
+    </FormikProvider>
   )
 }
 

@@ -80,12 +80,12 @@ describe('family cooking journal', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
     fireEvent.change(screen.getByLabelText('Meal date'), { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save meal' }))
-    expect(screen.getByLabelText('Meal name')).toHaveFocus()
+    await waitFor(() => expect(screen.getByLabelText('Meal name')).toHaveFocus())
     expect(screen.getByLabelText('Meal name')).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByLabelText('Meal name')).toHaveAccessibleDescription('Enter a meal name.')
     fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Soup' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save meal' }))
-    expect(screen.getByLabelText('Meal date')).toHaveFocus()
+    await waitFor(() => expect(screen.getByLabelText('Meal date')).toHaveFocus())
     expect(screen.getByLabelText('Meal date')).toHaveAccessibleDescription(
       'Enter a valid meal date.',
     )
