@@ -13,7 +13,7 @@ Milestone 5 is complete, including final verification and handoff for the redesi
 - Preserve drafts across views, validate forms accessibly, and prevent duplicate submissions.
 - Use the Account disclosure for account management and sign out, with screen focus, loading/save feedback, and session-check retry.
 
-Final verification passed: 53 frontend tests, lint, formatting, and production build. The Chrome responsive/keyboard review includes actual 200% zoom. See the [final handoff and coverage limits](docs/milestone-5-handoff.md), [review report and screenshots](docs/reviews/milestone-5.4/README.md), and [completed implementation plan](docs/milestone-5-plan.md). Next is milestone 6, recipe library and discovery.
+Final verification passed: 53 frontend tests, lint, formatting, and production build. The Chrome responsive/keyboard review includes actual 200% zoom. See the [final handoff and coverage limits](docs/milestone-5-handoff.md), [testing summary](docs/reviews/milestone-5.4/README.md), and [completed implementation plan](docs/milestone-5-plan.md). Next is milestone 6, recipe library and discovery.
 
 There is deliberately no email delivery, invitation token, password-reset, MFA, direct browser connection to Supabase, dish deletion, recipes, reviews, ratings, ingredients, or photos.
 

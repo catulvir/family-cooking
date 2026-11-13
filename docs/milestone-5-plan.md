@@ -83,7 +83,7 @@ Acceptance/tests:
 
 Implemented: consolidated the stylesheet, introduced semantic navigation/selected/hover/disabled colors, corrected selected-navigation hover contrast, strengthened control borders, and aligned headings/forms/actions. Added an original decorative botanical SVG alongside the chef motif and labelled Lucide meal actions. Tablet account forms and narrow action rows reflow; long content wraps.
 
-Review completed in Chrome at 360px, 768px, 1280px, and actual 200% browser zoom: 88 screenshots across 22 states, with visual inspection and real-browser keyboard flows. No horizontal overflow, clipped controls, targets below 44px, or contrast failures in the reviewed cases. Verification: 53 frontend tests, lint, formatting, and production build passed. [Review report, screenshots, measurements, and reproduction script](reviews/milestone-5.4/README.md). This review uses synthetic API fixtures; screen-reader and other-browser audits were not performed.
+Review completed in Chrome at 360px, 768px, 1280px, and actual 200% browser zoom: 88 screenshots across 22 states, with visual inspection and real-browser keyboard flows. No horizontal overflow, clipped controls, targets below 44px, or contrast failures in the reviewed cases. Verification: 53 frontend tests, lint, formatting, and production build passed. [Testing summary, limitations, and reproduction instructions](reviews/milestone-5.4/README.md). This review uses synthetic API fixtures; screen-reader and other-browser audits were not performed.
 
 Consolidate duplicated selectors and superseded rules in `App.css` while preserving appearance. Continue sourcing all theme colours from `colors.css`; add semantic tokens for navigation/selected states where they currently borrow text or field tokens. Check active navigation hover contrast as well as ordinary button states.
 
@@ -99,7 +99,7 @@ Browser review matrix:
 | Accounts | Draft, loading, request failure, pending creation, temporary password, long emails |
 | Interaction | Keyboard-only navigation, visible focus, disabled/hover/selected states, Escape and focus return |
 
-Pass criteria: no horizontal page scrolling or clipped controls, readable wrapping, 44px action targets, visible labels, and adequate contrast (4.5:1 normal text; 3:1 large text and meaningful UI boundaries). Record actual screenshots and findings; do not infer visual quality from a successful build.
+Pass criteria: no horizontal page scrolling or clipped controls, readable wrapping, 44px action targets, visible labels, and adequate contrast (4.5:1 normal text; 3:1 large text and meaningful UI boundaries). Keep a short testing summary of checks and limitations. Store screenshots and raw results outside the source tree; do not infer visual quality from a successful build.
 
 ### 5.5 — Verification and handoff
 

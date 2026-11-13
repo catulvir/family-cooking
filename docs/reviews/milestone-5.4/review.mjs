@@ -1,14 +1,33 @@
 // Local browser review with synthetic API responses. No family data or backend writes.
 // PLAYWRIGHT_MODULE may point to an existing Playwright installation.
 import { createRequire } from 'node:module'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, realpath, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
+import { tmpdir } from 'node:os'
+import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 import assert from 'node:assert/strict'
 
+const repository = await realpath(fileURLToPath(new URL('../../../', import.meta.url)))
+function requireExternalDirectory(directory) {
+  const path = relative(repository, directory)
+  assert(
+    isAbsolute(path) || path === '..' || path.startsWith(`..${sep}`),
+    'REVIEW_OUTPUT_DIR must be outside the source tree',
+  )
+}
+const requestedOutput = process.env.REVIEW_OUTPUT_DIR
+  ? resolve(process.env.REVIEW_OUTPUT_DIR)
+  : await mkdtemp(join(tmpdir(), 'family-cooking-review-'))
+requireExternalDirectory(requestedOutput)
+await mkdir(requestedOutput, { recursive: true })
+const artifactDirectory = await realpath(requestedOutput)
+requireExternalDirectory(artifactDirectory)
+const output = join(artifactDirectory, 'screenshots') + sep
+await mkdir(output, { recursive: true })
+requireExternalDirectory(await realpath(output))
+console.log(`Review artifacts: ${artifactDirectory}`)
 const require = createRequire(import.meta.url)
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
-const output = fileURLToPath(new URL('./screenshots/', import.meta.url))
-await mkdir(output, { recursive: true })
 const base = process.env.REVIEW_URL || 'http://127.0.0.1:5174'
 const member = {
   email: 'member@example.com',
@@ -234,17 +253,12 @@ try {
     const size = width === 640 ? 'zoom-200' : String(width)
     const context =
       width === 640
-        ? await chromium.launchPersistentContext(
-            fileURLToPath(
-              new URL('../../../frontend/node_modules/.cache/review-zoom/', import.meta.url),
-            ),
-            {
-              channel: 'chrome',
-              headless: true,
-              viewport: null,
-              args: ['--window-size=1280,1000'],
-            },
-          )
+        ? await chromium.launchPersistentContext(join(artifactDirectory, 'chrome-profile'), {
+            channel: 'chrome',
+            headless: true,
+            viewport: null,
+            args: ['--window-size=1280,1000'],
+          })
         : await browser.newContext({ viewport: { width, height: 900 } })
     if (width === 640) {
       const settings = context.pages()[0]
@@ -434,7 +448,7 @@ try {
 } finally {
   await browser.close()
   await writeFile(
-    new URL('./results.json', import.meta.url),
+    join(artifactDirectory, 'results.json'),
     JSON.stringify(
       {
         browser: version,
@@ -448,5 +462,11 @@ try {
     ) + '\n',
   )
 }
-console.log(JSON.stringify({ browser: version, captures: results.length, failures }, null, 2))
+console.log(
+  JSON.stringify(
+    { browser: version, captures: results.length, artifactDirectory, failures },
+    null,
+    2,
+  ),
+)
 assert.equal(failures.length, 0, 'Review findings need correction; see results.json')
