@@ -17,3 +17,8 @@ frontend/node_modules/
 frontend/dist/
 frontend/coverage/
 
+# Review captures belong outside the source tree.
+/docs/reviews/**/screenshots/
+/docs/reviews/**/*-overview.png
+/docs/reviews/**/results.json
+

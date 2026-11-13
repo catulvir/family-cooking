@@ -1,16 +1,32 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { FormikProvider, useFormik } from 'formik'
 import { AppForm, FormField, FormError } from './forms'
 import { mealSchema, type MealValues } from './formSchemas'
 import { dishesApi, DishApiError, type Dish, type DishInput } from './api/dishes'
+import { ArrowLeft, Pencil, Plus, Save } from 'lucide-react'
 
 type JournalView = { kind: 'list' } | { kind: 'detail'; dish: Dish } | { kind: 'form'; dish?: Dish }
 
-export default function Journal() {
+export default function Journal({ active = true }: { active?: boolean }) {
   const [dishes, setDishes] = useState<Dish[]>([])
   const [view, setView] = useState<JournalView>({ kind: 'list' })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const region = useRef<HTMLElement>(null)
+  const returnFocus = useRef<(() => HTMLElement | null | undefined) | null>(null)
+  const addButton = useRef<HTMLButtonElement>(null)
+  const editButton = useRef<HTMLButtonElement>(null)
+  const mealButtons = useRef(new Map<string, HTMLButtonElement>())
+  useLayoutEffect(() => {
+    if (active) {
+      const target =
+        returnFocus.current?.() ??
+        region.current?.querySelector<HTMLElement>(`#journal-${view.kind}-title`)
+      target?.focus()
+    }
+    returnFocus.current = null
+  }, [active, view])
 
   const load = () => {
     setLoading(true)
@@ -31,10 +47,12 @@ export default function Journal() {
   }, [])
 
   const showDetail = (dish: Dish) => {
+    setNotice('')
     setView({ kind: 'detail', dish })
     setError('')
   }
   const saved = (dish: Dish) => {
+    setNotice('Meal saved.')
     setDishes((current) =>
       [...current.filter((entry) => entry.id !== dish.id), dish].sort(compareDishes),
     )
@@ -42,16 +60,25 @@ export default function Journal() {
   }
 
   return (
-    <section className="journal" aria-labelledby="journal-title">
+    <section ref={region} className="journal" aria-labelledby={`journal-${view.kind}-title`}>
+      <output>{view.kind === 'list' && loading ? 'Loading meals…' : notice}</output>
       {view.kind === 'list' && (
         <>
           <div className="section-row">
-            <h2 id="journal-title">Meal journal</h2>
-            <button onClick={() => setView({ kind: 'form' })}>Add meal</button>
+            <h2 id="journal-list-title" tabIndex={-1}>
+              Meal journal
+            </h2>
+            <button
+              ref={addButton}
+              onClick={() => {
+                setNotice('')
+                setView({ kind: 'form' })
+              }}
+            >
+              <Plus aria-hidden="true" /> Add meal
+            </button>
           </div>
-          {loading ? (
-            <p>Loading meals…</p>
-          ) : error ? (
+          {loading ? null : error ? (
             <div className="journal-error" role="alert">
               <p>{error}</p>
               <button className="secondary" onClick={load}>
@@ -64,7 +91,14 @@ export default function Journal() {
             <ul className="dish-list">
               {dishes.map((dish) => (
                 <li key={dish.id}>
-                  <button className="dish-link" onClick={() => showDetail(dish)}>
+                  <button
+                    ref={(button) => {
+                      if (button) mealButtons.current.set(dish.id, button)
+                      else mealButtons.current.delete(dish.id)
+                    }}
+                    className="dish-link"
+                    onClick={() => showDetail(dish)}
+                  >
                     {dish.name}
                   </button>
                   <time dateTime={dish.preparedOn}>{formatDate(dish.preparedOn)}</time>
@@ -76,17 +110,26 @@ export default function Journal() {
       )}
       {view.kind === 'detail' && (
         <MealDetail
+          editRef={editButton}
           dish={view.dish}
-          onBack={() => setView({ kind: 'list' })}
-          onEdit={() => setView({ kind: 'form', dish: view.dish })}
+          onBack={() => {
+            setNotice('')
+            returnFocus.current = () => mealButtons.current.get(view.dish.id)
+            setView({ kind: 'list' })
+          }}
+          onEdit={() => {
+            setNotice('')
+            setView({ kind: 'form', dish: view.dish })
+          }}
         />
       )}
       {view.kind === 'form' && (
         <MealForm
           dish={view.dish}
-          onCancel={() =>
+          onCancel={() => {
+            returnFocus.current = () => (view.dish ? editButton.current : addButton.current)
             setView(view.dish ? { kind: 'detail', dish: view.dish } : { kind: 'list' })
-          }
+          }}
           onSaved={saved}
         />
       )}
@@ -106,10 +149,12 @@ function compareDishes(left: Dish, right: Dish) {
 }
 
 function MealDetail({
+  editRef,
   dish,
   onBack,
   onEdit,
 }: {
+  editRef: React.Ref<HTMLButtonElement>
   dish: Dish
   onBack: () => void
   onEdit: () => void
@@ -117,13 +162,19 @@ function MealDetail({
   return (
     <article className="dish-detail">
       <button className="secondary" onClick={onBack}>
-        Back to meals
+        <ArrowLeft aria-hidden="true" /> Back to meals
       </button>
       <p className="eyebrow">{formatDate(dish.preparedOn)}</p>
-      <h2>{dish.name}</h2>
+      <h2 id="journal-detail-title" tabIndex={-1}>
+        {dish.name}
+      </h2>
       {dish.location && <p>{dish.location}</p>}
       {dish.notes && <p className="notes">{dish.notes}</p>}
-      {dish.canEdit && <button onClick={onEdit}>Edit meal</button>}
+      {dish.canEdit && (
+        <button ref={editRef} onClick={onEdit}>
+          <Pencil aria-hidden="true" /> Edit meal
+        </button>
+      )}
     </article>
   )
 }
@@ -177,14 +228,19 @@ function MealForm({
   return (
     <FormikProvider value={formik}>
       <AppForm className="form dish-form">
-        <h2>{dish ? 'Edit meal' : 'Record a meal'}</h2>
+        <h2 id="journal-form-title" tabIndex={-1}>
+          {dish ? 'Edit meal' : 'Record a meal'}
+        </h2>
         <FormField name="name" label="Meal name" />
         <FormField name="preparedOn" label="Meal date" type="date" />
         <FormField name="location" label="Location (optional)" maxLength={200} />
         <FormField name="notes" label="Notes (optional)" as="textarea" maxLength={5000} />
         <FormError />
         <div className="form-actions">
-          <button disabled={saving}>{saving ? 'Saving…' : 'Save meal'}</button>
+          <button disabled={saving}>
+            <Save aria-hidden="true" />
+            {saving ? 'Saving…' : 'Save meal'}
+          </button>
           <button
             ref={cancelButton}
             type="button"

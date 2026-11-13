@@ -97,9 +97,11 @@ describe('family cooking journal', () => {
     render(<App />)
     fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
     fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Draft soup' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Account' }))
     fireEvent.click(screen.getByRole('button', { name: 'Family accounts' }))
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'draft@example.com' } })
     fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'ADMIN' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Account' }))
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong')
     expect(screen.getByLabelText('Email')).toHaveValue('draft@example.com')
@@ -114,9 +116,11 @@ describe('family cooking journal', () => {
     render(<App />)
     fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
     fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Draft soup' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Account' }))
     fireEvent.click(screen.getByRole('button', { name: 'Family accounts' }))
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'draft@example.com' } })
     fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'ADMIN' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Account' }))
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
 
     await screen.findByRole('button', { name: 'Sign in' })
@@ -125,6 +129,7 @@ describe('family cooking journal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
     expect(screen.getByLabelText('Meal name')).toHaveValue('')
+    fireEvent.click(await screen.findByRole('button', { name: 'Account' }))
     fireEvent.click(screen.getByRole('button', { name: 'Family accounts' }))
     expect(screen.getByLabelText('Email')).toHaveValue('')
     expect(screen.getByLabelText('Role')).toHaveValue('MEMBER')
@@ -331,6 +336,7 @@ describe('family cooking journal', () => {
     expect(screen.queryByRole('heading', { name: 'Family accounts' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Add meal' }))
     fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Draft soup' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Account' }))
     fireEvent.click(screen.getByRole('button', { name: 'Family accounts' }))
     expect(screen.getByRole('heading', { name: 'Family accounts' })).toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: 'Meal name' })).not.toBeInTheDocument()
@@ -344,6 +350,7 @@ describe('family cooking journal', () => {
   it('preserves the account email and administrator role across navigation', async () => {
     account.role = 'ADMIN'
     render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Account' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Family accounts' }))
     fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), {
       target: { value: 'new-admin@example.com' },
@@ -354,6 +361,7 @@ describe('family cooking journal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Journal' }))
     expect(screen.queryByRole('textbox', { name: 'Email' })).not.toBeInTheDocument()
     expect(screen.queryByRole('combobox', { name: 'Role' })).not.toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('button', { name: 'Account' }))
     fireEvent.click(screen.getByRole('button', { name: 'Family accounts' }))
     expect(screen.getByRole('textbox', { name: 'Email' })).toHaveValue('new-admin@example.com')
     expect(screen.getByRole('combobox', { name: 'Role' })).toHaveValue('ADMIN')

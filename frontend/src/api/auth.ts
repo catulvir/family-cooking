@@ -19,6 +19,15 @@ export interface CreatedUser extends ManagedUser {
   temporaryPassword: string
 }
 
+export class AuthApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message)
+  }
+}
+
 async function csrfHeaders(): Promise<HeadersInit> {
   const response = await fetch(`${apiOrigin}/api/v1/auth/csrf`, { credentials: 'include' })
   if (!response.ok) throw new Error('Could not prepare a secure request.')
@@ -29,7 +38,7 @@ async function csrfHeaders(): Promise<HeadersInit> {
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${apiOrigin}${path}`, { credentials: 'include', ...init })
   if (!response.ok) {
-    if (response.status === 401) throw new Error('Your email or password is incorrect.')
+    if (response.status === 401) throw new AuthApiError('Your email or password is incorrect.', 401)
     if (response.status === 403) throw new Error('You do not have access to that action.')
     if (response.status === 409) throw new Error('An account already uses that email address.')
     throw new Error('Something went wrong. Please try again.')

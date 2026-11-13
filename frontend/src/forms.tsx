@@ -13,7 +13,12 @@ export function AppForm({
   const locked = useRef(false)
   const form = useRef<HTMLFormElement>(null)
   useEffect(() => {
-    if (submitCount && !isSubmitting && Object.keys(errors).length)
+    if (
+      submitCount &&
+      !isSubmitting &&
+      Object.keys(errors).length &&
+      !form.current?.closest('[hidden]')
+    )
       form.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
   }, [errors, isSubmitting, submitCount])
   return (

@@ -8,7 +8,10 @@ afterEach(() => {
 
 describe('App', () => {
   it('identifies the application and shows the sign-in form without a session', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({}) }),
+    )
 
     render(<App />)
 
@@ -37,6 +40,7 @@ describe('App', () => {
 
     render(<App />)
 
+    fireEvent.click(await screen.findByRole('button', { name: 'Account' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Sign out' }))
 
     expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument()
