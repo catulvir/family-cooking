@@ -13,9 +13,11 @@ Milestone 5 is complete, including final verification and handoff for the redesi
 - Preserve drafts across views, validate forms accessibly, and prevent duplicate submissions.
 - Use the Account disclosure for account management and sign out, with screen focus, loading/save feedback, and session-check retry.
 
-Final verification passed: 53 frontend tests, lint, formatting, and production build. The Chrome responsive/keyboard review includes actual 200% zoom. See the [final handoff and coverage limits](docs/milestone-5-handoff.md), [testing summary](docs/reviews/milestone-5.4/README.md), and [completed implementation plan](docs/milestone-5-plan.md). Next is milestone 6, recipe library and discovery.
+Milestone 5 verification passed: 53 frontend tests, lint, formatting, and production build. Its Chrome responsive/keyboard review includes actual 200% zoom. See the [final handoff and coverage limits](docs/milestone-5-handoff.md), [testing summary](docs/reviews/milestone-5.4/README.md), and [completed implementation plan](docs/milestone-5-plan.md).
 
-There is deliberately no email delivery, invitation token, password-reset, MFA, direct browser connection to Supabase, dish deletion, recipes, reviews, ratings, ingredients, or photos.
+Milestone **6.1 is implemented**: active members can create and browse reusable recipes with ordered ingredients/instructions, optional servings/notes, and basic pagination. Creators and administrators can edit, with version conflicts preventing silent overwrites. The editor preserves drafts across main views and confirms discarding changes. Verification passed: 25 backend tests (zero skipped), 63 frontend tests, lint, formatting, and production build; a headless Chrome smoke review covered three widths. See the [milestone 6 plan](docs/milestone-6-plan.md) and [6.1 verification limits](docs/reviews/milestone-6.1/README.md). Next is 6.2, the richer recipe editor.
+
+There is deliberately no email delivery, invitation token, password-reset, MFA, direct browser connection to Supabase, dish/recipe deletion, tags/search, recipe-to-meal links, reviews, ratings, normalized dish ingredients, or photos yet.
 
 ## Architecture
 
@@ -30,7 +32,7 @@ The repository is a modular monolith:
 
 The backend uses Flyway as the schema authority. Hibernate validates the database schema and does not create or modify it. The account foundation uses UUID identifiers, normalized unique email lookup, `ADMIN`/`MEMBER` roles, and `PENDING`/`ACTIVE`/`DISABLED` statuses. The credential migration only adds `password_hash` and `must_change_password` columns; it does not delete or rewrite existing data.
 
-Future domain modules will keep dishes independent from recipes and reviews. A dish currently records its creator, name, meal date, optional location, and optional notes. A later recipe milestone can add a nullable `recipe_id`; dish ingredients will refer directly to dishes; and optional reviews will have their own authorization-protected endpoints and will not appear in ordinary dish responses.
+Recipes currently remain independent from dishes and reviews. Recipe persistence uses transactional JDBC with a version-checked aggregate update; existing account and dish persistence uses JPA. A dish currently records its creator, name, meal date, optional location, and optional notes. Milestone 6.5 will add a nullable `recipe_id`; later dish ingredients will refer directly to dishes, and optional reviews will have their own authorization-protected endpoints and will not appear in ordinary dish responses.
 
 ## Prerequisites
 
@@ -89,7 +91,7 @@ Run the backend verification from `backend/`:
 .\mvnw.cmd verify
 ```
 
-The PostgreSQL integration test starts a temporary PostgreSQL 17 container through Testcontainers. It is skipped when Docker is unavailable.
+The PostgreSQL suites start temporary PostgreSQL 17 containers through Testcontainers. Run with Docker available: domain and migration suites deliberately fail rather than silently skipping database coverage.
 
 Run the frontend checks from `frontend/`:
 
@@ -155,7 +157,7 @@ Milestones 1–3 provide the implemented foundation, private access, and cooking
 
 4. **UI design agreement** — accepted direction for screen layouts, visual system, navigation, responsive behaviour, and acceptance scenarios. [Design reference and TDD handoff](docs/milestone-4-ui-design.md).
 5. **App shell and journal redesign** — complete: consolidated styling, botanical decoration, draft preservation, shared Formik/Yup forms, accessible navigation/focus/feedback, responsive browser review, and final verification. [Handoff](docs/milestone-5-handoff.md).
-6. **Recipe library and discovery** — reusable recipes, editable recipe ingredients, tags, search, filters, sorting, pagination, and optional recipe links from dishes.
+6. **Recipe library and discovery** — in progress: 6.1 delivers reusable recipes, ordered ingredients/instructions, creator/admin editing, and basic pagination. Richer editing, administrator-managed tags, discovery controls, and optional meal links follow. [Behaviour contract and ordered implementation slices](docs/milestone-6-plan.md).
 7. **Photos and personal profiles** — protected photos in private object storage, thumbnails, display names, and avatars.
 8. **Favourites and seasonal home** — personal favourites, shared curated collections, and recently cooked dishes.
 9. **Ingredient-aware discovery** — normalized dish ingredients and any/all/exclude ingredient search, independently editable from recipes.

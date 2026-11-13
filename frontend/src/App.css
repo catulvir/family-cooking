@@ -394,6 +394,51 @@ button.dish-link:hover:not(:disabled) {
 .notes {
   white-space: pre-wrap;
 }
+.recipe-fields,
+.recipe-rows {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.recipe-rows legend {
+  padding: 1rem 0 0.5rem;
+  font-weight: bold;
+}
+.recipe-row {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+.recipe-row button,
+.recipe-rows > button {
+  justify-self: start;
+}
+.recipe-content {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
+  width: 100%;
+}
+.recipe-content li {
+  margin-bottom: 0.75rem;
+  overflow-wrap: anywhere;
+}
+.recipe-servings {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+@media (max-width: 38rem) {
+  .recipe-content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+}
 .temporary-password {
   display: grid;
   gap: 0.4rem;

@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { BookOpen, ChevronDown, LogOut, Users } from 'lucide-react'
 import type { CurrentUser } from './api/auth'
 
-export type DashboardView = 'journal' | 'accounts'
+export type DashboardView = 'journal' | 'recipes' | 'accounts'
 
 export default function AccountNavigation({
   user,
@@ -82,6 +82,12 @@ export default function AccountNavigation({
           onClick={() => navigate('journal')}
         >
           <BookOpen size={20} aria-hidden="true" /> Journal
+        </button>
+        <button
+          aria-current={view === 'recipes' ? 'page' : undefined}
+          onClick={() => navigate('recipes')}
+        >
+          <BookOpen size={20} aria-hidden="true" /> Recipes
         </button>
       </nav>
     </>

@@ -28,7 +28,7 @@ class AccountStatusFilter(private val userRepository: AppUserRepository) : OnceP
             return
         }
 
-        if (user.status == UserStatus.PENDING && request.requestURI !in pendingAccountPaths) {
+        if ((user.status == UserStatus.PENDING || user.mustChangePassword) && request.requestURI !in pendingAccountPaths) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "A password change is required before continuing")
             return
         }
