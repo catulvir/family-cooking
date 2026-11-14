@@ -1,26 +1,29 @@
 import { Plus } from 'lucide-react'
-import type { RecipePage } from './api/recipes'
-import { TagLabels } from './RecipeTags'
+import { TagLabels, type CatalogueState } from './RecipeTags'
+import RecipeDiscoveryControls from './RecipeDiscoveryControls'
+import type { RecipeDiscoveryState } from './useRecipeDiscovery'
 
 export default function RecipeLibrary({
-  page,
-  results,
-  loading,
-  error,
+  discovery,
+  tagState,
   onNew,
   onRetry,
   onOpen,
   onPageChange,
 }: {
-  page: number
-  results: RecipePage | null
-  loading: boolean
-  error: string
+  discovery: RecipeDiscoveryState
+  tagState: CatalogueState
   onNew: () => void
   onRetry: () => void
   onOpen: (id: string) => void
   onPageChange: (page: number) => void
 }) {
+  const {
+    results,
+    loading,
+    error,
+    query: { page, q, tagIds },
+  } = discovery
   return (
     <>
       <div className="section-row">
@@ -31,6 +34,8 @@ export default function RecipeLibrary({
           <Plus aria-hidden="true" /> New recipe
         </button>
       </div>
+      <RecipeDiscoveryControls discovery={discovery} tagState={tagState} />
+      {q && <p>Search: “{q}”</p>}
       {loading && <output>Loading recipes…</output>}
       {error ? (
         <div role="alert">
@@ -43,12 +48,16 @@ export default function RecipeLibrary({
         results && (
           <>
             {results.totalElements === 0 ? (
-              <p>No recipes yet. Add your first family recipe.</p>
+              <output>
+                {q || tagIds.length
+                  ? 'No recipes match. Try a different name or clear filters.'
+                  : 'No recipes yet. Add your first family recipe.'}
+              </output>
             ) : (
               <>
-                <p>
+                <output>
                   {results.totalElements} {results.totalElements === 1 ? 'recipe' : 'recipes'}
-                </p>
+                </output>
                 <ul className="dish-list">
                   {results.items.map((recipe) => (
                     <li key={recipe.id}>

@@ -10,6 +10,8 @@ class RecipeTagRepository(private val jdbc: JdbcTemplate) {
     private val mapper = RowMapper { rs, _ -> RecipeTag(rs.getObject("id", UUID::class.java), TagGroup.valueOf(rs.getString("tag_group")), rs.getString("name")) }
     fun all(): List<RecipeTag> = jdbc.query("SELECT * FROM recipe_tags ORDER BY tag_group, lower(name), id", mapper)
     fun find(id: UUID): RecipeTag? = jdbc.query("SELECT * FROM recipe_tags WHERE id = ?", mapper, id).firstOrNull()
+    fun findAll(ids: List<UUID>): List<RecipeTag> = if (ids.isEmpty()) emptyList() else
+        jdbc.query("SELECT * FROM recipe_tags WHERE id IN (${ids.joinToString(",") { "?" }})", mapper, *ids.toTypedArray())
     fun forRecipes(ids: List<UUID>): Map<UUID, List<RecipeTag>> {
         if (ids.isEmpty()) return emptyMap()
         val placeholders = ids.joinToString(",") { "?" }

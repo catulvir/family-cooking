@@ -36,6 +36,9 @@ class RecipeInput(
 
 data class RecipeSummary(val id: UUID, val name: String, val servings: Int?, val canEdit: Boolean, val tags: List<RecipeTag>)
 data class RecipePage(val items: List<RecipeSummary>, val page: Int, val size: Int, val totalElements: Long, val totalPages: Long)
+
+enum class RecipeSort(val value: String) { NAME_ASC("name_asc"), NAME_DESC("name_desc"), NEWEST("newest") }
+internal data class RecipeSearch(val query: String, val tagsByGroup: Map<TagGroup, List<UUID>>, val sort: RecipeSort)
 data class RecipeDetail(
     val id: UUID, val name: String, val servings: Int?, val notes: String?,
     val ingredients: List<IngredientInput>, val instructions: List<StepInput>,

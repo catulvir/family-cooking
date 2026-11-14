@@ -1,10 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { recipesApi, type Recipe, type RecipePage, type RecipeTag } from './api/recipes'
+import { recipesApi, type Recipe, type RecipeTag } from './api/recipes'
 import RecipeForm from './RecipeForm'
 import TagManagement from './TagManagement'
 import RecipeLibrary from './RecipeLibrary'
 import RecipeDetail from './RecipeDetail'
 import useRecipeTagCatalogue from './useRecipeTagCatalogue'
+import useRecipeDiscovery from './useRecipeDiscovery'
 import { messageFrom } from './errors'
 
 type View =
@@ -22,40 +23,12 @@ export default function Recipes({ active, isAdmin }: { active: boolean; isAdmin:
     setManagingTags(true)
   }
   const [view, setView] = useState<View>({ kind: 'list' })
-  const [listRequest, setListRequest] = useState({ page: 0, revision: 0 })
-  const page = listRequest.page
-  const [results, setResults] = useState<RecipePage | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [listError, setListError] = useState('')
+  const discovery = useRecipeDiscovery()
   const [detailError, setDetailError] = useState('')
   const [notice, setNotice] = useState('')
   const region = useRef<HTMLElement>(null)
   const returnTarget = useRef<string | null>(null)
-
-  useEffect(() => {
-    const requestedPage = listRequest.page
-    let cancelled = false
-    recipesApi
-      .list(requestedPage)
-      .then((data) => {
-        if (cancelled) return
-        if (requestedPage > 0 && requestedPage >= data.totalPages) {
-          setListRequest((current) => ({ ...current, page: Math.max(0, data.totalPages - 1) }))
-          return
-        }
-        setResults(data)
-        setLoading(false)
-      })
-      .catch((reason) => {
-        if (!cancelled) {
-          setListError(messageFrom(reason))
-          setLoading(false)
-        }
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [listRequest])
+  const libraryFocus = useRef<string | null>(null)
 
   useEffect(() => {
     if (view.kind !== 'detail' || view.recipe) return
@@ -78,8 +51,9 @@ export default function Recipes({ active, isAdmin }: { active: boolean; isAdmin:
 
   useLayoutEffect(() => {
     if (!active || managingTags) return
-    const target = returnTarget.current
-      ? region.current?.querySelector<HTMLElement>(`[data-return="${returnTarget.current}"]`)
+    const targetKey = returnTarget.current ?? (view.kind === 'list' ? libraryFocus.current : null)
+    const target = targetKey
+      ? region.current?.querySelector<HTMLElement>(`[data-return="${targetKey}"]`)
       : null
     ;(target ?? region.current?.querySelector<HTMLElement>(`#recipes-${view.kind}-title`))?.focus()
     if (target || view.kind !== 'detail' || view.recipe) returnTarget.current = null
@@ -96,19 +70,12 @@ export default function Recipes({ active, isAdmin }: { active: boolean; isAdmin:
     setNotice('')
     setView({ kind: 'list' })
   }
-  const reloadList = () => {
-    setLoading(true)
-    setListError('')
-    setListRequest((current) => ({ ...current, revision: current.revision + 1 }))
-  }
+  const reloadList = discovery.reload
   const changePage = (next: number) => {
     // Move focus to a stable anchor before the paging controls unmount. Loading
     // and request completion can then leave focus alone, even after navigation.
     region.current?.querySelector<HTMLElement>('#recipes-list-title')?.focus()
-    setLoading(true)
-    setListError('')
-    setResults(null)
-    setListRequest((current) => ({ ...current, page: next }))
+    discovery.changePage(next)
   }
   const saved = (recipe: Recipe) => {
     setNotice('Recipe saved.')
@@ -137,7 +104,17 @@ export default function Recipes({ active, isAdmin }: { active: boolean; isAdmin:
   return (
     <>
       <div hidden={managingTags}>
-        <section ref={region} className="journal" aria-labelledby={`recipes-${view.kind}-title`}>
+        <section
+          ref={region}
+          className="journal"
+          aria-labelledby={`recipes-${view.kind}-title`}
+          onFocusCapture={(event) => {
+            if (view.kind === 'list') {
+              const target = event.target.closest<HTMLElement>('[data-return]')
+              if (target?.dataset.return) libraryFocus.current = target.dataset.return
+            }
+          }}
+        >
           {isAdmin && view.kind !== 'form' && (
             <button className="secondary" data-return="manage-tags" onClick={manageTags}>
               Manage tags
@@ -146,10 +123,8 @@ export default function Recipes({ active, isAdmin }: { active: boolean; isAdmin:
           <output>{notice}</output>
           {view.kind === 'list' && (
             <RecipeLibrary
-              page={page}
-              results={results}
-              loading={loading}
-              error={listError}
+              discovery={discovery}
+              tagState={tagState}
               onNew={() => {
                 tagState.retry()
                 setNotice('')

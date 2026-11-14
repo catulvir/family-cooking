@@ -1,6 +1,6 @@
 # Milestone 6 — Recipe library and discovery
 
-Status: in progress. Slices 6.1–6.3 implemented locally on 2026-11-14; 6.4–6.6 remain. Recipe edit permissions and administrator-managed tags were confirmed during planning. Unimplemented details below remain proposed implementation defaults. [6.1 verification and limitations](reviews/milestone-6.1/README.md). [6.2 targeted verification and handoff](milestone-6.2-handoff.md). [6.3 verification and handoff](milestone-6.3-handoff.md).
+Status: in progress. Slices 6.1–6.4 implemented locally on 2026-11-14; 6.5–6.6 remain. Recipe edit permissions and administrator-managed tags were confirmed during planning. Unimplemented details below remain proposed implementation defaults. [6.1 verification and limitations](reviews/milestone-6.1/README.md). [6.2 targeted verification and handoff](milestone-6.2-handoff.md). [6.3 verification and handoff](milestone-6.3-handoff.md). [6.4 verification and handoff](milestone-6.4-handoff.md).
 
 ## Outcome
 
@@ -160,6 +160,12 @@ Acceptance:
 
 ### 6.4 — Search, filters, sorting, and pagination
 
+Implemented: server-side literal name search, OR-within/AND-between tag filtering, allowlisted name/newest sorts with ID tie-breakers, accurate counts, and pagination. Invalid queries and filter IDs are rejected; duplicate filter IDs do not duplicate results. The library adds explicit Search, immediate tag/sort controls, removable chips, Clear tags/Clear all, and a responsive inline filter disclosure with selected count and keyboard focus handling.
+
+Discovery state survives detail/edit and main-view navigation; request identity prevents old results and errors from replacing newer criteria. Mutations refresh matching results and recover invalid pages. Empty library, no matches, loading, failures, and expired sessions are distinct. Last-focused recipe rows are restored across main-view navigation when still present.
+
+Verification: four backend and nine initial frontend discovery cases failed before implementation; a later focus regression also failed before its fix. Backend `verify` passed **36 tests, zero skipped**; **48 targeted frontend tests**, changed-file lint/format checks, and production build passed. Browser smoke checks, the full frontend suite, and live frontend/backend workflows remain deferred to 6.6. No schema change. [Detailed handoff](milestone-6.4-handoff.md).
+
 Complete database-backed name search and grouped-tag filtering, result counts, sort controls, selected chips, pagination, and the responsive filter disclosure.
 
 Acceptance:
@@ -198,4 +204,4 @@ Photos, avatars/profiles, favourites, curated Home/collections, normalized dish 
 
 Milestone 6 is complete when members can create, find, maintain, and cook from reusable recipes under the confirmed permission policy; administrator-managed tags and all discovery semantics work; old meal data and workflows remain intact; and integrated, migration, responsive, and keyboard checks are recorded with no blocking defects in scope.
 
-Next: **6.4 — Search, filters, sorting, and pagination**. No commit, push, or deployment was performed as part of 6.3.
+Next: **6.5 — Optional recipe links in the meal journal**. No commit, push, or deployment was performed as part of 6.4.

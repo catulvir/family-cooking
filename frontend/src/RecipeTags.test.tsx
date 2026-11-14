@@ -126,7 +126,9 @@ it('members select grouped tags and see saved labels in detail and library witho
   expect(JSON.parse(writes[0].init.body as string).tagIds).toEqual(['tag-1', 'tag-2'])
   expect(screen.getByText('Latvian')).toBeVisible()
   fireEvent.click(screen.getByRole('button', { name: 'Back to recipes' }))
-  expect(await screen.findByText('Latvian')).toBeVisible()
+  expect(
+    within(await screen.findByRole('list', { name: 'Recipe tags' })).getByText('Latvian'),
+  ).toBeVisible()
 })
 
 it('tag management and main navigation preserve both drafts and refresh selected labels after rename', async () => {

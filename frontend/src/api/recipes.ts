@@ -42,6 +42,19 @@ export interface RecipePage {
   totalElements: number
   totalPages: number
 }
+export const recipeSorts = {
+  name_asc: 'Name A–Z',
+  name_desc: 'Name Z–A',
+  newest: 'Newest added',
+} as const
+export type RecipeSort = keyof typeof recipeSorts
+export interface RecipeQuery {
+  q: string
+  tagIds: string[]
+  sort: RecipeSort
+  page: number
+  size: number
+}
 
 export class RecipeApiError extends Error {
   constructor(
@@ -82,7 +95,16 @@ async function save<T>(path: string, method: string, input: unknown): Promise<T>
   })
 }
 export const recipesApi = {
-  list: (page = 0) => request<RecipePage>(`/api/v1/recipes?page=${page}&size=20`),
+  list: (query: Partial<RecipeQuery> = {}) => {
+    const params = new URLSearchParams({
+      page: String(query.page ?? 0),
+      size: String(query.size ?? 20),
+      q: query.q ?? '',
+      sort: query.sort ?? 'name_asc',
+    })
+    for (const id of query.tagIds ?? []) params.append('tagId', id)
+    return request<RecipePage>(`/api/v1/recipes?${params}`)
+  },
   get: (id: string) => request<Recipe>(`/api/v1/recipes/${id}`),
   create: (input: RecipeInput) => save<Recipe>('/api/v1/recipes', 'POST', input),
   update: (id: string, input: RecipeInput) => save<Recipe>(`/api/v1/recipes/${id}`, 'PUT', input),
