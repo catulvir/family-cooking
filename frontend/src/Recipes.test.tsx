@@ -25,6 +25,12 @@ let writes: RequestInit[]
 let pending: (() => void) | undefined
 let deferSave: boolean
 let readFailure: 'list' | 'detail' | undefined
+let serverErrors: Record<string, string>
+let logoutFailure: boolean
+let role: 'MEMBER' | 'ADMIN'
+let deferRead: boolean
+let pendingRead: (() => void) | undefined
+let detailReads: number
 beforeEach(() => {
   saved = structuredClone(recipe)
   entries = []
@@ -33,6 +39,12 @@ beforeEach(() => {
   pending = undefined
   deferSave = false
   readFailure = undefined
+  serverErrors = {}
+  logoutFailure = false
+  role = 'MEMBER'
+  deferRead = false
+  pendingRead = undefined
+  detailReads = 0
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string, init: RequestInit = {}) => {
@@ -43,11 +55,21 @@ beforeEach(() => {
       if (path === '/api/v1/auth/me')
         return respond({
           email: 'member@example.com',
-          role: 'MEMBER',
+          role,
           status: 'ACTIVE',
           mustChangePassword: false,
         })
       if (path === '/api/v1/auth/csrf') return respond({ token: 'csrf' })
+      if (path === '/api/v1/auth/login')
+        return respond({
+          email: 'member@example.com',
+          role,
+          status: 'ACTIVE',
+          mustChangePassword: false,
+        })
+      if (path === '/api/v1/auth/logout')
+        return logoutFailure ? respond({}, 503) : new Response(null, { status: 204 })
+      if (path === '/api/v1/admin/users') return respond([])
       if (path === '/api/v1/dishes') return respond([])
       if (path.startsWith('/api/v1/recipes') && init.method) {
         writes.push(init)
@@ -58,6 +80,7 @@ beforeEach(() => {
         if (failure)
           return respond(
             {
+              fieldErrors: serverErrors,
               message:
                 failure === 409
                   ? 'This recipe changed. Your changes have not been saved.'
@@ -84,11 +107,262 @@ beforeEach(() => {
           totalPages: Math.ceil(entries.length / 20),
         })
       }
-      if (path === '/api/v1/recipes/recipe-1')
+      if (path === '/api/v1/recipes/recipe-1') {
+        detailReads++
+        if (deferRead)
+          await new Promise<void>((resolve) => {
+            pendingRead = resolve
+          })
         return readFailure === 'detail' ? respond({}, 503) : respond(saved)
+      }
       throw new Error(`Unexpected request: ${path}`)
     }),
   )
+})
+
+async function editRecipe() {
+  entries = [saved]
+  await openLibrary()
+  fireEvent.click(await screen.findByRole('button', { name: 'Pumpkin soup' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit recipe' }))
+}
+
+it('moves recipe rows with stable field identity, keeps quantities and reloads saved order', async () => {
+  await editRecipe()
+  const saltId = screen.getByLabelText('Ingredient 2').id
+  fireEvent.click(screen.getByRole('button', { name: 'Move ingredient 2 up' }))
+  expect(screen.getByLabelText('Ingredient 1')).toHaveValue('Salt')
+  expect(screen.getByLabelText('Ingredient 1').id).toBe(saltId)
+  expect(screen.getByLabelText('Ingredient 1')).toHaveFocus()
+  expect(screen.getByLabelText('Quantity 2 (optional)')).toHaveValue('1/2')
+  expect(screen.getByRole('button', { name: 'Move ingredient 1 up' })).toBeDisabled()
+  fireEvent.click(screen.getByRole('button', { name: 'Move step 1 down' }))
+  expect(screen.getByLabelText('Step 2')).toHaveValue('Chop.')
+  expect(screen.getByLabelText('Step 2')).toHaveFocus()
+  expect(screen.getByRole('button', { name: 'Move step 2 down' })).toBeDisabled()
+  fireEvent.click(screen.getByRole('button', { name: 'Save recipe' }))
+  await screen.findByRole('heading', { name: 'Pumpkin soup' })
+  fireEvent.click(screen.getByRole('button', { name: 'Back to recipes' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Pumpkin soup' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit recipe' }))
+  expect(screen.getByLabelText('Ingredient 1')).toHaveValue('Salt')
+  expect(screen.getByLabelText('Step 1')).toHaveValue('Cook.')
+  expect(JSON.parse(writes[0].body as string).ingredients[0]).toEqual({
+    name: 'Salt',
+    quantity: 'to taste',
+    unit: null,
+  })
+})
+
+it('focuses added and surviving rows and exposes actionable empty-list errors', async () => {
+  await editRecipe()
+  fireEvent.click(screen.getByRole('button', { name: 'Add ingredient' }))
+  expect(screen.getByLabelText('Ingredient 3')).toHaveFocus()
+  fireEvent.click(screen.getByRole('button', { name: 'Remove ingredient 3' }))
+  expect(screen.getByLabelText('Ingredient 2')).toHaveFocus()
+  fireEvent.click(screen.getByRole('button', { name: 'Remove ingredient 1' }))
+  expect(screen.getByLabelText('Ingredient 1')).toHaveValue('Salt')
+  expect(screen.getByLabelText('Ingredient 1')).toHaveFocus()
+  fireEvent.click(screen.getByRole('button', { name: 'Remove ingredient 1' }))
+  expect(screen.getByRole('button', { name: 'Add ingredient' })).toHaveFocus()
+  fireEvent.click(screen.getByRole('button', { name: 'Remove step 2' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Remove step 1' }))
+  expect(screen.getByRole('button', { name: 'Add step' })).toHaveFocus()
+  fireEvent.click(screen.getByRole('button', { name: 'Save recipe' }))
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Add ingredient' })).toHaveFocus())
+  expect(screen.getByRole('button', { name: 'Add ingredient' })).toHaveAccessibleDescription(
+    'Add at least one ingredient.',
+  )
+  expect(screen.getByRole('button', { name: 'Add step' })).toHaveAccessibleDescription(
+    'Add at least one instruction step.',
+  )
+  expect(writes).toHaveLength(0)
+  fireEvent.click(screen.getByRole('button', { name: 'Add step' }))
+  expect(screen.getByLabelText('Step 1')).toHaveFocus()
+})
+
+it('keeps nested server errors attached to moved rows without stealing the move focus', async () => {
+  await editRecipe()
+  failure = 400
+  serverErrors = {
+    'ingredients[1].quantity': 'Check this quantity.',
+    'instructions[0].text': 'Check this step.',
+  }
+  fireEvent.click(screen.getByRole('button', { name: 'Save recipe' }))
+  await waitFor(() => expect(screen.getByLabelText('Quantity 2 (optional)')).toHaveFocus())
+  fireEvent.click(screen.getByRole('button', { name: 'Move ingredient 2 up' }))
+  expect(screen.getByLabelText('Quantity 1 (optional)')).toHaveAccessibleDescription(
+    'Check this quantity.',
+  )
+  expect(screen.getByLabelText('Ingredient 1')).toHaveFocus()
+  fireEvent.click(screen.getByRole('button', { name: 'Move step 1 down' }))
+  expect(screen.getByLabelText('Step 2')).toHaveAccessibleDescription('Check this step.')
+  expect(screen.getByLabelText('Step 2')).toHaveFocus()
+  fireEvent.change(screen.getByLabelText('Step 2'), { target: { value: '' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Save recipe' }))
+  await waitFor(() =>
+    expect(screen.getByLabelText('Step 2')).toHaveAccessibleDescription('Enter an instruction.'),
+  )
+  expect(screen.getByLabelText('Step 2')).toHaveFocus()
+  expect(writes).toHaveLength(1)
+})
+
+it('reloads a conflicting recipe only after explicit discard and preserves the draft on reload failure', async () => {
+  await editRecipe()
+  fireEvent.change(screen.getByLabelText('Recipe name'), { target: { value: 'My draft' } })
+  failure = 409
+  fireEvent.click(screen.getByRole('button', { name: 'Save recipe' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Reload latest recipe' }))
+  expect(screen.getByRole('button', { name: 'Keep editing' })).toHaveFocus()
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Keep editing' }), { key: 'Escape' })
+  expect(screen.getByRole('button', { name: 'Reload latest recipe' })).toHaveFocus()
+  expect(screen.getByLabelText('Recipe name')).toHaveValue('My draft')
+  readFailure = 'detail'
+  fireEvent.click(screen.getByRole('button', { name: 'Reload latest recipe' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Discard and reload' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong')
+  expect(screen.getByLabelText('Recipe name')).toHaveValue('My draft')
+  expect(screen.getByRole('button', { name: 'Reload latest recipe' })).toHaveFocus()
+  saved = { ...saved, name: 'Updated recipe', version: 3 }
+  readFailure = undefined
+  fireEvent.click(screen.getByRole('button', { name: 'Reload latest recipe' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Discard and reload' }))
+  await screen.findByRole('heading', { name: 'Updated recipe' })
+  fireEvent.click(screen.getByRole('button', { name: 'Edit recipe' }))
+  failure = undefined
+  fireEvent.click(screen.getByRole('button', { name: 'Save recipe' }))
+  await screen.findByRole('heading', { name: 'Updated recipe' })
+  expect(JSON.parse(writes[1].body as string).version).toBe(3)
+})
+
+it('locks a pending reload, ignores duplicate actions, and honors refreshed edit permission without stealing hidden focus', async () => {
+  await editRecipe()
+  fireEvent.change(screen.getByLabelText('Recipe notes (optional)'), {
+    target: { value: 'Local notes' },
+  })
+  failure = 409
+  fireEvent.click(screen.getByRole('button', { name: 'Save recipe' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Reload latest recipe' }))
+  saved = { ...saved, name: 'Latest recipe', version: 2, canEdit: false }
+  deferRead = true
+  const discard = screen.getByRole('button', { name: 'Discard and reload' })
+  fireEvent.click(discard)
+  fireEvent.click(discard)
+  await waitFor(() => expect(pendingRead).toBeDefined())
+  expect(detailReads).toBe(2)
+  expect(screen.getByRole('button', { name: 'Save recipe' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+  expect(screen.getByLabelText('Ingredient 1')).toBeDisabled()
+  fireEvent.submit(screen.getByRole('button', { name: 'Save recipe' }).closest('form')!)
+  expect(writes).toHaveLength(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Journal' }))
+  pendingRead!()
+  await waitFor(() =>
+    expect(screen.queryByLabelText('Recipe notes (optional)')).not.toBeInTheDocument(),
+  )
+  expect(screen.getByRole('heading', { name: 'Meal journal' })).toHaveFocus()
+  fireEvent.click(screen.getByRole('button', { name: 'Recipes' }))
+  expect(screen.getByRole('heading', { name: 'Latest recipe' })).toHaveFocus()
+  expect(screen.queryByRole('button', { name: 'Edit recipe' })).not.toBeInTheDocument()
+})
+
+it.each([401, 403, 500])('preserves the recipe draft after a %s save failure', async (status) => {
+  await editRecipe()
+  fireEvent.change(screen.getByLabelText('Recipe notes (optional)'), {
+    target: { value: 'Unsaved notes' },
+  })
+  failure = status
+  fireEvent.click(screen.getByRole('button', { name: 'Save recipe' }))
+  const error = await screen.findByRole('alert')
+  expect(error).toHaveTextContent(
+    status === 401 ? 'session has expired' : status === 403 ? 'do not have access' : 'Save failed',
+  )
+  expect(screen.getByLabelText('Recipe notes (optional)')).toHaveValue('Unsaved notes')
+  expect(screen.getByRole('button', { name: 'Save recipe' })).toBeEnabled()
+  expect(screen.queryByRole('button', { name: 'Reload latest recipe' })).not.toBeInTheDocument()
+})
+
+it('cancels pristine and fully reverted row edits without confirmation', async () => {
+  await editRecipe()
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit recipe' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Move ingredient 1 down' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Move ingredient 2 up' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Add step' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Remove step 3' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+  expect(await screen.findByRole('heading', { name: 'Pumpkin soup' })).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Discard changes' })).not.toBeInTheDocument()
+  expect(writes).toHaveLength(0)
+})
+
+it('preserves ordered recipe and account drafts on navigation and failed logout, then clears them on successful logout', async () => {
+  role = 'ADMIN'
+  await editRecipe()
+  fireEvent.click(screen.getByRole('button', { name: 'Move ingredient 2 up' }))
+  fireEvent.change(screen.getByLabelText('Servings (optional)'), { target: { value: '6' } })
+  fireEvent.change(screen.getByLabelText('Recipe notes (optional)'), {
+    target: { value: 'Draft notes' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Account' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Family accounts' }))
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'draft@example.com' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Recipes' }))
+  expect(screen.getByLabelText('Ingredient 1')).toHaveValue('Salt')
+  expect(screen.getByLabelText('Servings (optional)')).toHaveValue('6')
+  logoutFailure = true
+  fireEvent.click(screen.getByRole('button', { name: 'Account' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+  await screen.findByRole('alert')
+  expect(screen.getByLabelText('Recipe notes (optional)')).toHaveValue('Draft notes')
+  if (screen.getByRole('button', { name: 'Account' }).getAttribute('aria-expanded') === 'false')
+    fireEvent.click(screen.getByRole('button', { name: 'Account' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Family accounts' }))
+  expect(screen.getByLabelText('Email')).toHaveValue('draft@example.com')
+  logoutFailure = false
+  fireEvent.click(screen.getByRole('button', { name: 'Account' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+  await screen.findByRole('button', { name: 'Sign in' })
+  fireEvent.change(screen.getByLabelText('Email'), {
+    target: { value: 'member@example.com' },
+  })
+  fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'correct-password' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Recipes' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'New recipe' }))
+  expect(screen.getByLabelText('Recipe name')).toHaveValue('')
+  expect(screen.getByLabelText('Ingredient 1')).toHaveValue('')
+})
+
+it('keeps hidden pending-save errors from stealing journal focus and retries with the complete draft', async () => {
+  await editRecipe()
+  fireEvent.change(screen.getByLabelText('Recipe notes (optional)'), {
+    target: { value: 'Keep these notes' },
+  })
+  deferSave = true
+  failure = 400
+  serverErrors = { 'instructions[1].text': 'Check this instruction.' }
+  const saveButton = screen.getByRole('button', { name: 'Save recipe' })
+  fireEvent.click(saveButton)
+  fireEvent.click(saveButton)
+  await waitFor(() => expect(pending).toBeDefined())
+  expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Move ingredient 2 up' })).toBeDisabled()
+  fireEvent.click(screen.getByRole('button', { name: 'Journal' }))
+  const journalHeading = screen.getByRole('heading', { name: 'Meal journal' })
+  pending!()
+  await waitFor(() =>
+    expect(screen.getByLabelText('Step 2')).toHaveAttribute('aria-invalid', 'true'),
+  )
+  expect(journalHeading).toHaveFocus()
+  expect(writes).toHaveLength(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Recipes' }))
+  expect(screen.getByLabelText('Recipe notes (optional)')).toHaveValue('Keep these notes')
+  deferSave = false
+  failure = undefined
+  fireEvent.click(screen.getByRole('button', { name: 'Save recipe' }))
+  await screen.findByRole('heading', { name: 'Pumpkin soup' })
+  expect(JSON.parse(writes[1].body as string).notes).toBe('Keep these notes')
 })
 afterEach(() => vi.unstubAllGlobals())
 async function openLibrary() {

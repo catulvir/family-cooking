@@ -1,6 +1,6 @@
 # Milestone 6 — Recipe library and discovery
 
-Status: in progress. Slice 6.1 implemented and verified locally on 2026-11-14; 6.2–6.6 remain. Recipe edit permissions and administrator-managed tags were confirmed during planning. Unimplemented details below remain proposed implementation defaults. [6.1 verification and limitations](reviews/milestone-6.1/README.md).
+Status: in progress. Slices 6.1–6.2 implemented locally on 2026-11-14; 6.3–6.6 remain. Recipe edit permissions and administrator-managed tags were confirmed during planning. Unimplemented details below remain proposed implementation defaults. [6.1 verification and limitations](reviews/milestone-6.1/README.md). [6.2 targeted verification and handoff](milestone-6.2-handoff.md).
 
 ## Outcome
 
@@ -110,7 +110,7 @@ Implemented: V5 creates recipes and ordered ingredient/step tables; transactiona
 
 TDD evidence: six initial API tests failed with missing endpoints, and six initial frontend scenarios failed with missing Recipes navigation before implementation. Final verification: 25 backend tests (zero skipped), 63 frontend tests, lint, formatting, and production build passed. Tests include a real login/CSRF flow, V4 upgrade preserving complete account/meal rows, database rollback, and simultaneous child-only edits. Headless Chrome smoke review passed 15 captures at three widths; representative screenshots were visually inspected. [Details and review limits](reviews/milestone-6.1/README.md).
 
-Slice 6.2 still owns row reordering, stronger row-focus behaviour, fuller conflict recovery, and expanded draft/error coverage. Basic cancellation confirmation and main-view draft preservation were included now to keep the initial editor safe to use. Tags, search/filter/sort controls, and meal links are not implemented.
+Work deferred from 6.1 to 6.2 included row reordering, stronger row-focus behaviour, fuller conflict recovery, and expanded draft/error coverage. Basic cancellation confirmation and main-view draft preservation were included in 6.1 to keep the initial editor safe to use. Tags, search/filter/sort controls, and meal links are not implemented.
 
 The 6.1 full frontend suite and browser smoke checks above completed before the user established the project-wide verification timing rule. Future slices follow that rule.
 
@@ -125,6 +125,12 @@ Acceptance:
 - Migration works against a fresh database and the existing V4 schema without changing accounts or meal data.
 
 ### 6.2 — Complete recipe editor and draft behaviour
+
+Implemented: labelled ingredient/step move controls, stable row identity, focus on added/moved/surviving rows, announced row changes, and accessible empty-list errors that focus the relevant Add control. Row values, touched state, and sparse server errors move together. Optional fields and content/row limits are covered by focused validation tests. Dirty-state comparison excludes internal row keys, so reverted content cancels immediately.
+
+Recipe conflicts now offer Reload latest recipe. Changed drafts require Keep editing / Discard and reload; successful reload opens the latest detail and respects its edit permission. Failed reloads retain the draft and restore focus for retry. Save/reload locking prevents overlapping actions; hidden completions do not steal focus. Recipe and account drafts survive view switches and failed logout, and successful logout clears them. Shared form validation now focuses once per completed submission, avoiding focus theft when error-bearing rows move.
+
+TDD: seven new recipe interaction cases failed before implementation; a later reload-failure case exposed missing focus restoration and was fixed. Verification passed: 34 targeted recipe/schema/form tests plus nine selected shared-form regressions, changed-file lint/format checks, and the production build. No backend or schema changes. Per project instructions, the full frontend suite and browser smoke review were not run; those remain in 6.6. [Handoff and exact verification scope](milestone-6.2-handoff.md).
 
 Add ingredient/step row management, reordering, optional servings/notes, field limits, nested error mapping, draft preservation, conflict recovery, and cancellation behaviour.
 
@@ -186,4 +192,4 @@ Photos, avatars/profiles, favourites, curated Home/collections, normalized dish 
 
 Milestone 6 is complete when members can create, find, maintain, and cook from reusable recipes under the confirmed permission policy; administrator-managed tags and all discovery semantics work; old meal data and workflows remain intact; and integrated, migration, responsive, and keyboard checks are recorded with no blocking defects in scope.
 
-Next: **6.2 — Complete recipe editor and draft behaviour**. No commit, push, or deployment was performed for 6.1.
+Next: **6.3 — Managed tags and recipe classification**. No commit, push, or deployment was performed as part of 6.2.

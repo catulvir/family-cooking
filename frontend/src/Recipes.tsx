@@ -246,6 +246,11 @@ export default function Recipes({ active }: { active: boolean }) {
           recipe={view.recipe}
           active={active}
           onSaved={saved}
+          onReloaded={(recipe) => {
+            setNotice('Latest recipe loaded.')
+            setView({ kind: 'detail', id: recipe.id, recipe })
+            reloadList()
+          }}
           onCancel={() => {
             returnTarget.current = view.recipe ? 'edit' : 'new'
             // Fetch again after leaving an editor, so a conflicting draft can be discarded

@@ -37,6 +37,7 @@ export class RecipeApiError extends Error {
   constructor(
     message: string,
     readonly fieldErrors: Record<string, string> = {},
+    readonly status?: number,
   ) {
     super(message)
   }
@@ -45,8 +46,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${apiOrigin}${path}`, { credentials: 'include', ...init })
   if (!response.ok) {
     if (response.status === 401)
-      throw new RecipeApiError('Your session has expired. Please sign in again.')
-    if (response.status === 403) throw new RecipeApiError('You do not have access to that action.')
+      throw new RecipeApiError('Your session has expired. Please sign in again.', {}, 401)
+    if (response.status === 403)
+      throw new RecipeApiError('You do not have access to that action.', {}, 403)
     let body: { message?: string; fieldErrors?: Record<string, string> } = {}
     try {
       body = await response.json()
@@ -56,6 +58,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     throw new RecipeApiError(
       body.message ?? 'Something went wrong. Please try again.',
       body.fieldErrors,
+      response.status,
     )
   }
   return response.json() as Promise<T>

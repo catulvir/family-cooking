@@ -1,6 +1,6 @@
 # Family Cooking Tracker
 
-Private, family-only web application for recording family meals and notable food experiences, with later support for reusable recipes, ingredients, reviews, and protected photos.
+Private, family-only web application for recording family meals and maintaining reusable recipes with ingredients and instructions. Reviews and protected photos are planned for later milestones.
 
 ## Current milestone
 
@@ -15,7 +15,9 @@ Milestone 5 is complete, including final verification and handoff for the redesi
 
 Milestone 5 verification passed: 53 frontend tests, lint, formatting, and production build. Its Chrome responsive/keyboard review includes actual 200% zoom. See the [final handoff and coverage limits](docs/milestone-5-handoff.md), [testing summary](docs/reviews/milestone-5.4/README.md), and [completed implementation plan](docs/milestone-5-plan.md).
 
-Milestone **6.1 is implemented**: active members can create and browse reusable recipes with ordered ingredients/instructions, optional servings/notes, and basic pagination. Creators and administrators can edit, with version conflicts preventing silent overwrites. The editor preserves drafts across main views and confirms discarding changes. Verification passed: 25 backend tests (zero skipped), 63 frontend tests, lint, formatting, and production build; a headless Chrome smoke review covered three widths. See the [milestone 6 plan](docs/milestone-6-plan.md) and [6.1 verification limits](docs/reviews/milestone-6.1/README.md). Next is 6.2, the richer recipe editor.
+Milestone **6.1 is implemented**: active members can create and browse reusable recipes with ordered ingredients/instructions, optional servings/notes, and basic pagination. Creators and administrators can edit, with version conflicts preventing silent overwrites. Its verification passed 25 backend tests (zero skipped), 63 frontend tests, lint, formatting, and production build; a headless Chrome smoke review covered three widths. See the [6.1 verification limits](docs/reviews/milestone-6.1/README.md).
+
+Milestone **6.2 is implemented**: ingredient and instruction rows can be added, removed, and reordered with stable field identity and deliberate focus. Nested errors follow their rows; empty lists have actionable validation. Conflict reloads require confirmation for changed drafts and preserve input on failure. Targeted verification passed 34 recipe/schema/form tests and nine selected shared-form regressions, plus changed-file lint/format checks and build. Full frontend and browser checks are deferred to 6.6 per [project instructions](AGENTS.md). See the [6.2 handoff](docs/milestone-6.2-handoff.md) and [milestone 6 plan](docs/milestone-6-plan.md). Next is 6.3, administrator-managed tags.
 
 There is deliberately no email delivery, invitation token, password-reset, MFA, direct browser connection to Supabase, dish/recipe deletion, tags/search, recipe-to-meal links, reviews, ratings, normalized dish ingredients, or photos yet.
 
@@ -157,7 +159,7 @@ Milestones 1–3 provide the implemented foundation, private access, and cooking
 
 4. **UI design agreement** — accepted direction for screen layouts, visual system, navigation, responsive behaviour, and acceptance scenarios. [Design reference and TDD handoff](docs/milestone-4-ui-design.md).
 5. **App shell and journal redesign** — complete: consolidated styling, botanical decoration, draft preservation, shared Formik/Yup forms, accessible navigation/focus/feedback, responsive browser review, and final verification. [Handoff](docs/milestone-5-handoff.md).
-6. **Recipe library and discovery** — in progress: 6.1 delivers reusable recipes, ordered ingredients/instructions, creator/admin editing, and basic pagination. Richer editing, administrator-managed tags, discovery controls, and optional meal links follow. [Behaviour contract and ordered implementation slices](docs/milestone-6-plan.md).
+6. **Recipe library and discovery** — in progress: 6.1–6.2 deliver reusable recipes, ordered ingredients/instructions, creator/admin editing, basic pagination, row editing, and protected drafts/conflict recovery. Administrator-managed tags, discovery controls, and optional meal links follow. [Behaviour contract and ordered implementation slices](docs/milestone-6-plan.md).
 7. **Photos and personal profiles** — protected photos in private object storage, thumbnails, display names, and avatars.
 8. **Favourites and seasonal home** — personal favourites, shared curated collections, and recently cooked dishes.
 9. **Ingredient-aware discovery** — normalized dish ingredients and any/all/exclude ingredient search, independently editable from recipes.

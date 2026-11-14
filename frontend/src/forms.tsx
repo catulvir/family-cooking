@@ -5,21 +5,27 @@ import { useField, useFormikContext } from 'formik'
 export function AppForm({
   children,
   className = 'form',
+  disabled = false,
 }: {
   children: ReactNode
   className?: string
+  disabled?: boolean
 }) {
   const { submitForm, isSubmitting, errors, submitCount, setStatus } = useFormikContext()
   const locked = useRef(false)
   const form = useRef<HTMLFormElement>(null)
+  const completedSubmission = useRef(0)
   useEffect(() => {
-    if (
-      submitCount &&
-      !isSubmitting &&
-      Object.keys(errors).length &&
-      !form.current?.closest('[hidden]')
-    )
-      form.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
+    if (!submitCount) {
+      completedSubmission.current = 0
+      return
+    }
+    if (isSubmitting || completedSubmission.current === submitCount) return
+    completedSubmission.current = submitCount
+    if (Object.keys(errors).length && !form.current?.closest('[hidden]'))
+      form.current
+        ?.querySelector<HTMLElement>('[aria-invalid="true"], [data-error-focus="true"]')
+        ?.focus()
   }, [errors, isSubmitting, submitCount])
   return (
     <form
@@ -28,7 +34,7 @@ export function AppForm({
       noValidate
       onSubmit={async (event) => {
         event.preventDefault()
-        if (locked.current) return
+        if (locked.current || disabled) return
         locked.current = true
         setStatus(undefined)
         try {
