@@ -28,7 +28,10 @@ export default function Dashboard({
     setView(nextView)
     if (view === nextView) {
       if (nextView === 'accounts') accountHeading.current?.focus()
-      else if (nextView === 'recipes') recipePanel.current?.querySelector('h2')?.focus()
+      else if (nextView === 'recipes')
+        Array.from(recipePanel.current?.querySelectorAll('h2') ?? [])
+          .find((heading) => !heading.closest('[hidden]'))
+          ?.focus()
       else journalPanel.current?.querySelector('h2')?.focus()
     }
   }
@@ -49,7 +52,7 @@ export default function Dashboard({
       </div>
       {recipesVisited && (
         <div ref={recipePanel} hidden={view !== 'recipes'}>
-          <Recipes active={view === 'recipes'} />
+          <Recipes active={view === 'recipes'} isAdmin={user.role === 'ADMIN'} />
         </div>
       )}
       {user.role === 'ADMIN' && (

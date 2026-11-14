@@ -4,6 +4,7 @@ import { AppForm, FormError, FormField } from './forms'
 import { RecipeApiError, recipesApi, type Recipe } from './api/recipes'
 import { messageFrom } from './errors'
 import RecipeRows from './RecipeRows'
+import { TagSelection, type CatalogueState } from './RecipeTags'
 import { recipeContent, recipeFormSchema, recipeValues } from './recipeFormSchema'
 
 export default function RecipeForm({
@@ -12,12 +13,16 @@ export default function RecipeForm({
   onSaved,
   onCancel,
   onReloaded,
+  tagState,
+  onManageTags,
 }: {
   recipe?: Recipe
   active: boolean
   onSaved: (recipe: Recipe) => void
   onCancel: () => void
   onReloaded: (recipe: Recipe) => void
+  tagState: CatalogueState
+  onManageTags?: () => void
 }) {
   const [initialValues] = useState(() => recipeValues(recipe))
   const [conflict, setConflict] = useState(false)
@@ -47,6 +52,7 @@ export default function RecipeForm({
           unit: item.unit.trim() || null,
         })),
         instructions: values.instructions.map((step) => ({ text: step.text.trim() })),
+        tagIds: values.tagIds,
         ...(recipe ? { version: recipe.version } : {}),
       }
       try {
@@ -125,6 +131,17 @@ export default function RecipeForm({
           <RecipeRows name="ingredients" active={active} />
           <RecipeRows name="instructions" active={active} />
           <FormField name="notes" label="Recipe notes (optional)" as="textarea" maxLength={5000} />
+          <TagSelection state={tagState} savedTags={recipe?.tags} />
+          {onManageTags && (
+            <button
+              type="button"
+              className="secondary"
+              data-return="manage-tags"
+              onClick={onManageTags}
+            >
+              Manage tags
+            </button>
+          )}
         </fieldset>
         <FormError />
         {conflict && recipe && (

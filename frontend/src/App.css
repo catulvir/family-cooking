@@ -348,7 +348,7 @@ textarea {
   padding: 0;
   list-style: none;
 }
-.dish-list li {
+.dish-list > li {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -433,6 +433,62 @@ button.dish-link:hover:not(:disabled) {
   flex-shrink: 0;
   white-space: nowrap;
 }
+.tag-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  min-width: 0;
+}
+.tag-chip {
+  display: inline-block;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+.dish-list > li:has(.tag-labels) {
+  flex-wrap: wrap;
+}
+.dish-list .tag-labels {
+  flex-basis: 100%;
+}
+.tag-options {
+  min-width: 0;
+  margin: 0.75rem 0;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+.tag-options label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 44px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.tag-options input[type='checkbox'] {
+  width: 1.25rem;
+  height: 1.25rem;
+  min-height: 0;
+  flex-shrink: 0;
+}
+.managed-tags {
+  list-style: none;
+  padding: 0;
+}
+.managed-tags li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  overflow-wrap: anywhere;
+}
 @media (max-width: 38rem) {
   .recipe-content {
     grid-template-columns: minmax(0, 1fr);
@@ -488,7 +544,7 @@ button.dish-link:hover:not(:disabled) {
 @media (max-width: 38rem) {
   .account-row,
   .section-row,
-  .dish-list li,
+  .dish-list > li,
   .user-list li {
     align-items: flex-start;
     flex-direction: column;

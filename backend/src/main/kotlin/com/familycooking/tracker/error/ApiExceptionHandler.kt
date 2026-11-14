@@ -11,6 +11,18 @@ import java.time.Instant
 
 @RestControllerAdvice
 class ApiExceptionHandler {
+    @ExceptionHandler(com.familycooking.tracker.recipes.TagNotFoundException::class)
+    fun handleTagNotFound(request: HttpServletRequest): ResponseEntity<ApiError> =
+        error(HttpStatus.NOT_FOUND, "TAG_NOT_FOUND", "Tag not found", request)
+
+    @ExceptionHandler(com.familycooking.tracker.recipes.TagConflictException::class)
+    fun handleTagConflict(request: HttpServletRequest): ResponseEntity<ApiError> =
+        error(HttpStatus.CONFLICT, "TAG_CONFLICT", "A tag with this name already exists in this group.", request, mapOf("name" to "Choose another name for this group."))
+
+    @ExceptionHandler(com.familycooking.tracker.recipes.InvalidTagSelectionException::class)
+    fun handleInvalidTags(request: HttpServletRequest): ResponseEntity<ApiError> =
+        error(HttpStatus.BAD_REQUEST, "INVALID_TAG_SELECTION", "Some selected tags no longer exist. Refresh the catalogue and select existing tags.", request, mapOf("tagIds" to "Select existing tags from the catalogue."))
+
     @ExceptionHandler(com.familycooking.tracker.recipes.RecipeNotFoundException::class)
     fun handleRecipeNotFound(request: HttpServletRequest): ResponseEntity<ApiError> =
         error(HttpStatus.NOT_FOUND, "RECIPE_NOT_FOUND", "Recipe not found", request)

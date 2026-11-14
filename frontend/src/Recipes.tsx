@@ -1,7 +1,16 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ArrowLeft, Pencil, Plus } from 'lucide-react'
-import { recipesApi, type Recipe, type RecipePage } from './api/recipes'
+import {
+  recipesApi,
+  recipeTagsApi,
+  type Recipe,
+  type RecipePage,
+  type RecipeTag,
+  type TagCatalogue,
+} from './api/recipes'
 import RecipeForm from './RecipeForm'
+import TagManagement from './TagManagement'
+import { TagLabels } from './RecipeTags'
 import { messageFrom } from './errors'
 
 type View =
@@ -9,7 +18,49 @@ type View =
   | { kind: 'detail'; id: string; recipe?: Recipe }
   | { kind: 'form'; recipe?: Recipe }
 
-export default function Recipes({ active }: { active: boolean }) {
+export default function Recipes({ active, isAdmin }: { active: boolean; isAdmin: boolean }) {
+  const [managingTags, setManagingTags] = useState(false)
+  const [tagsVisited, setTagsVisited] = useState(false)
+  const [catalogue, setCatalogue] = useState<TagCatalogue | null>(null)
+  const [tagLoading, setTagLoading] = useState(true)
+  const [tagError, setTagError] = useState('')
+  const [tagRevision, setTagRevision] = useState(0)
+  useEffect(() => {
+    let cancelled = false
+    recipeTagsApi
+      .list()
+      .then((data) => {
+        if (!cancelled) {
+          setCatalogue(data)
+          setTagLoading(false)
+        }
+      })
+      .catch((reason) => {
+        if (!cancelled) {
+          setTagError(messageFrom(reason))
+          setTagLoading(false)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- Revision explicitly retries the catalogue request.
+  }, [tagRevision])
+  const tagState = {
+    catalogue,
+    loading: tagLoading,
+    error: tagError,
+    retry: () => {
+      setTagLoading(true)
+      setTagError('')
+      setTagRevision((revision) => revision + 1)
+    },
+  }
+  const manageTags = () => {
+    tagState.retry()
+    setTagsVisited(true)
+    setManagingTags(true)
+  }
   const [view, setView] = useState<View>({ kind: 'list' })
   const [listRequest, setListRequest] = useState({ page: 0, revision: 0 })
   const page = listRequest.page
@@ -66,15 +117,16 @@ export default function Recipes({ active }: { active: boolean }) {
   }, [view])
 
   useLayoutEffect(() => {
-    if (!active) return
+    if (!active || managingTags) return
     const target = returnTarget.current
       ? region.current?.querySelector<HTMLElement>(`[data-return="${returnTarget.current}"]`)
       : null
     ;(target ?? region.current?.querySelector<HTMLElement>(`#recipes-${view.kind}-title`))?.focus()
     if (target || view.kind !== 'detail' || view.recipe) returnTarget.current = null
-  }, [active, view])
+  }, [active, view, managingTags])
 
   const open = (id: string) => {
+    tagState.retry()
     setNotice('')
     setDetailError('')
     setView({ kind: 'detail', id })
@@ -104,170 +156,225 @@ export default function Recipes({ active }: { active: boolean }) {
     setView({ kind: 'detail', id: recipe.id, recipe })
     reloadList()
   }
+  const tagSaved = (tag: RecipeTag) => {
+    // Cancel any older catalogue response before applying the mutation result.
+    tagState.retry()
+    setCatalogue((current) =>
+      current
+        ? {
+            ...current,
+            [tag.group]: [...current[tag.group].filter((item) => item.id !== tag.id), tag].sort(
+              (a, b) => a.name.localeCompare(b.name),
+            ),
+          }
+        : current,
+    )
+    setView((current) =>
+      current.kind !== 'list' && current.recipe
+        ? {
+            ...current,
+            recipe: {
+              ...current.recipe,
+              tags: current.recipe.tags?.map((selected) =>
+                selected.id === tag.id ? tag : selected,
+              ),
+            },
+          }
+        : current,
+    )
+    reloadList()
+  }
 
   return (
-    <section ref={region} className="journal" aria-labelledby={`recipes-${view.kind}-title`}>
-      <output>{notice}</output>
-      {view.kind === 'list' && (
-        <>
-          <div className="section-row">
-            <h2 id="recipes-list-title" tabIndex={-1}>
-              Recipes
-            </h2>
-            <button
-              data-return="new"
-              onClick={() => {
-                setNotice('')
-                setView({ kind: 'form' })
-              }}
-            >
-              <Plus aria-hidden="true" /> New recipe
+    <>
+      <div hidden={managingTags}>
+        <section ref={region} className="journal" aria-labelledby={`recipes-${view.kind}-title`}>
+          {isAdmin && view.kind !== 'form' && (
+            <button className="secondary" data-return="manage-tags" onClick={manageTags}>
+              Manage tags
             </button>
-          </div>
-          {loading && <output>Loading recipes…</output>}
-          {listError ? (
-            <div role="alert">
-              <p>{listError}</p>
-              <button className="secondary" onClick={reloadList}>
-                Try again
-              </button>
-            </div>
-          ) : (
-            results && (
-              <>
-                {results.totalElements === 0 ? (
-                  <p>No recipes yet. Add your first family recipe.</p>
-                ) : (
-                  <>
-                    <p>
-                      {results.totalElements} {results.totalElements === 1 ? 'recipe' : 'recipes'}
-                    </p>
-                    <ul className="dish-list">
-                      {results.items.map((recipe) => (
-                        <li key={recipe.id}>
-                          <button
-                            className="dish-link"
-                            data-return={recipe.id}
-                            onClick={() => open(recipe.id)}
-                          >
-                            {recipe.name}
-                          </button>
-                          {recipe.servings !== null && (
-                            <span className="recipe-servings">Serves {recipe.servings}</span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                    <nav className="form-actions" aria-label="Recipe pages">
-                      <button
-                        className="secondary"
-                        disabled={loading || page === 0}
-                        onClick={() => changePage(page - 1)}
-                      >
-                        Previous
-                      </button>
-                      <output>
-                        Page {page + 1} of {results.totalPages}
-                      </output>
-                      <button
-                        className="secondary"
-                        disabled={loading || page + 1 >= results.totalPages}
-                        onClick={() => changePage(page + 1)}
-                      >
-                        Next
-                      </button>
-                    </nav>
-                  </>
-                )}
-              </>
-            )
           )}
-        </>
-      )}
-      {view.kind === 'detail' && (
-        <article className="dish-detail">
-          <button className="secondary" onClick={() => back(view.id)}>
-            <ArrowLeft aria-hidden="true" /> Back to recipes
-          </button>
-          <h2 id="recipes-detail-title" tabIndex={-1}>
-            {view.recipe?.name ?? 'Recipe'}
-          </h2>
-          {detailError ? (
-            <div role="alert">
-              <p>{detailError}</p>
-              <button
-                onClick={() => {
-                  setDetailError('')
-                  setView({ kind: 'detail', id: view.id })
-                }}
-              >
-                Try again
-              </button>
-            </div>
-          ) : (
-            !view.recipe && <output>Loading recipe…</output>
-          )}
-          {view.recipe && (
+          <output>{notice}</output>
+          {view.kind === 'list' && (
             <>
-              {view.recipe.servings !== null && <p>Servings: {view.recipe.servings}</p>}
-              <div className="recipe-content">
-                <section aria-label="Ingredients">
-                  <h3>Ingredients</h3>
-                  <ul>
-                    {view.recipe.ingredients.map((item, index) => (
-                      <li key={index}>
-                        {[item.quantity, item.unit, item.name].filter(Boolean).join(' ')}
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-                <section aria-label="Instructions">
-                  <h3>Instructions</h3>
-                  <ol>
-                    {view.recipe.instructions.map((step, index) => (
-                      <li className="notes" key={index}>
-                        {step.text}
-                      </li>
-                    ))}
-                  </ol>
-                </section>
-              </div>
-              {view.recipe.notes && <p className="notes">{view.recipe.notes}</p>}
-              {view.recipe.canEdit && (
+              <div className="section-row">
+                <h2 id="recipes-list-title" tabIndex={-1}>
+                  Recipes
+                </h2>
                 <button
-                  data-return="edit"
+                  data-return="new"
                   onClick={() => {
                     setNotice('')
-                    setView({ kind: 'form', recipe: view.recipe })
+                    setView({ kind: 'form' })
                   }}
                 >
-                  <Pencil aria-hidden="true" /> Edit recipe
+                  <Plus aria-hidden="true" /> New recipe
                 </button>
+              </div>
+              {loading && <output>Loading recipes…</output>}
+              {listError ? (
+                <div role="alert">
+                  <p>{listError}</p>
+                  <button className="secondary" onClick={reloadList}>
+                    Try again
+                  </button>
+                </div>
+              ) : (
+                results && (
+                  <>
+                    {results.totalElements === 0 ? (
+                      <p>No recipes yet. Add your first family recipe.</p>
+                    ) : (
+                      <>
+                        <p>
+                          {results.totalElements}{' '}
+                          {results.totalElements === 1 ? 'recipe' : 'recipes'}
+                        </p>
+                        <ul className="dish-list">
+                          {results.items.map((recipe) => (
+                            <li key={recipe.id}>
+                              <button
+                                className="dish-link"
+                                data-return={recipe.id}
+                                onClick={() => open(recipe.id)}
+                              >
+                                {recipe.name}
+                              </button>
+                              {recipe.servings !== null && (
+                                <span className="recipe-servings">Serves {recipe.servings}</span>
+                              )}
+                              <TagLabels tags={recipe.tags} />
+                            </li>
+                          ))}
+                        </ul>
+                        <nav className="form-actions" aria-label="Recipe pages">
+                          <button
+                            className="secondary"
+                            disabled={loading || page === 0}
+                            onClick={() => changePage(page - 1)}
+                          >
+                            Previous
+                          </button>
+                          <output>
+                            Page {page + 1} of {results.totalPages}
+                          </output>
+                          <button
+                            className="secondary"
+                            disabled={loading || page + 1 >= results.totalPages}
+                            onClick={() => changePage(page + 1)}
+                          >
+                            Next
+                          </button>
+                        </nav>
+                      </>
+                    )}
+                  </>
+                )
               )}
             </>
           )}
-        </article>
+          {view.kind === 'detail' && (
+            <article className="dish-detail">
+              <button className="secondary" onClick={() => back(view.id)}>
+                <ArrowLeft aria-hidden="true" /> Back to recipes
+              </button>
+              <h2 id="recipes-detail-title" tabIndex={-1}>
+                {view.recipe?.name ?? 'Recipe'}
+              </h2>
+              {detailError ? (
+                <div role="alert">
+                  <p>{detailError}</p>
+                  <button
+                    onClick={() => {
+                      setDetailError('')
+                      setView({ kind: 'detail', id: view.id })
+                    }}
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : (
+                !view.recipe && <output>Loading recipe…</output>
+              )}
+              {view.recipe && (
+                <>
+                  {view.recipe.servings !== null && <p>Servings: {view.recipe.servings}</p>}
+                  <TagLabels tags={view.recipe.tags} />
+                  <div className="recipe-content">
+                    <section aria-label="Ingredients">
+                      <h3>Ingredients</h3>
+                      <ul>
+                        {view.recipe.ingredients.map((item, index) => (
+                          <li key={index}>
+                            {[item.quantity, item.unit, item.name].filter(Boolean).join(' ')}
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                    <section aria-label="Instructions">
+                      <h3>Instructions</h3>
+                      <ol>
+                        {view.recipe.instructions.map((step, index) => (
+                          <li className="notes" key={index}>
+                            {step.text}
+                          </li>
+                        ))}
+                      </ol>
+                    </section>
+                  </div>
+                  {view.recipe.notes && <p className="notes">{view.recipe.notes}</p>}
+                  {view.recipe.canEdit && (
+                    <button
+                      data-return="edit"
+                      onClick={() => {
+                        setNotice('')
+                        setView({ kind: 'form', recipe: view.recipe })
+                      }}
+                    >
+                      <Pencil aria-hidden="true" /> Edit recipe
+                    </button>
+                  )}
+                </>
+              )}
+            </article>
+          )}
+          {view.kind === 'form' && (
+            <RecipeForm
+              recipe={view.recipe}
+              active={active && !managingTags}
+              tagState={tagState}
+              onManageTags={isAdmin ? manageTags : undefined}
+              onSaved={saved}
+              onReloaded={(recipe) => {
+                setNotice('Latest recipe loaded.')
+                setDetailError('')
+                setView({ kind: 'detail', id: recipe.id, recipe })
+                reloadList()
+              }}
+              onCancel={() => {
+                returnTarget.current = view.recipe ? 'edit' : 'new'
+                // Fetch again after leaving an editor, so a conflicting draft can be discarded
+                // and reopened against the latest server version.
+                if (view.recipe) open(view.recipe.id)
+                else setView({ kind: 'list' })
+              }}
+            />
+          )}
+        </section>
+      </div>
+      {tagsVisited && isAdmin && (
+        <div hidden={!managingTags}>
+          <TagManagement
+            active={active && managingTags}
+            state={tagState}
+            onSaved={tagSaved}
+            onBack={() => {
+              returnTarget.current = 'manage-tags'
+              setManagingTags(false)
+            }}
+          />
+        </div>
       )}
-      {view.kind === 'form' && (
-        <RecipeForm
-          recipe={view.recipe}
-          active={active}
-          onSaved={saved}
-          onReloaded={(recipe) => {
-            setNotice('Latest recipe loaded.')
-            setDetailError('')
-            setView({ kind: 'detail', id: recipe.id, recipe })
-            reloadList()
-          }}
-          onCancel={() => {
-            returnTarget.current = view.recipe ? 'edit' : 'new'
-            // Fetch again after leaving an editor, so a conflicting draft can be discarded
-            // and reopened against the latest server version.
-            if (view.recipe) open(view.recipe.id)
-            else setView({ kind: 'list' })
-          }}
-        />
-      )}
-    </section>
+    </>
   )
 }

@@ -5,6 +5,7 @@ export interface RecipeValues {
   name: string
   servings: string
   notes: string
+  tagIds: string[]
   ingredients: { key: string; name: string; quantity: string; unit: string }[]
   instructions: { key: string; text: string }[]
 }
@@ -17,6 +18,7 @@ export function recipeValues(recipe?: Recipe): RecipeValues {
     name: recipe?.name ?? '',
     servings: recipe?.servings?.toString() ?? '',
     notes: recipe?.notes ?? '',
+    tagIds: recipe?.tags?.map((tag) => tag.id) ?? [],
     ingredients: recipe?.ingredients.map((item) => ({
       key: crypto.randomUUID(),
       name: item.name,
@@ -36,12 +38,14 @@ export function recipeContent(values: RecipeValues) {
     name: values.name,
     servings: values.servings,
     notes: values.notes,
+    tagIds: [...values.tagIds].sort(),
     ingredients: values.ingredients.map(({ name, quantity, unit }) => ({ name, quantity, unit })),
     instructions: values.instructions.map(({ text }) => ({ text })),
   }
 }
 
 export const recipeFormSchema = yup.object({
+  tagIds: yup.array().of(yup.string().required()).max(30, 'Select at most 30 tags.').required(),
   name: yup
     .string()
     .trim()
