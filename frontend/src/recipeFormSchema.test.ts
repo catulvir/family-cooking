@@ -58,3 +58,13 @@ it('rejects oversized ingredient and instruction lists', async () => {
     'Use at most 100 instruction steps.',
   )
 })
+
+it('allows thirty selected tags and rejects thirty-one', async () => {
+  const values = valid()
+  values.tagIds = Array.from({ length: 30 }, (_, index) => `tag-${index}`)
+  await expect(recipeFormSchema.isValid(values)).resolves.toBe(true)
+  values.tagIds.push('extra-tag')
+  await expect(recipeFormSchema.validateAt('tagIds', values)).rejects.toThrow(
+    'Select at most 30 tags.',
+  )
+})

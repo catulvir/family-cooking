@@ -49,6 +49,10 @@ class RecipeRepository(private val jdbc: JdbcTemplate) {
     }
 
     private fun replaceContent(id: UUID, input: RecipeInput) {
+        jdbc.update("DELETE FROM recipe_tag_assignments WHERE recipe_id = ?", id)
+        input.tagIds.distinct().forEach { tagId ->
+            jdbc.update("INSERT INTO recipe_tag_assignments (recipe_id, tag_id) VALUES (?, ?)", id, tagId)
+        }
         jdbc.update("DELETE FROM recipe_ingredients WHERE recipe_id = ?", id)
         jdbc.update("DELETE FROM recipe_steps WHERE recipe_id = ?", id)
         input.ingredients.forEachIndexed { position, item ->

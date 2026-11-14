@@ -1,6 +1,6 @@
 # Milestone 6 — Recipe library and discovery
 
-Status: in progress. Slices 6.1–6.2 implemented locally on 2026-11-14; 6.3–6.6 remain. Recipe edit permissions and administrator-managed tags were confirmed during planning. Unimplemented details below remain proposed implementation defaults. [6.1 verification and limitations](reviews/milestone-6.1/README.md). [6.2 targeted verification and handoff](milestone-6.2-handoff.md).
+Status: in progress. Slices 6.1–6.3 implemented locally on 2026-11-14; 6.4–6.6 remain. Recipe edit permissions and administrator-managed tags were confirmed during planning. Unimplemented details below remain proposed implementation defaults. [6.1 verification and limitations](reviews/milestone-6.1/README.md). [6.2 targeted verification and handoff](milestone-6.2-handoff.md). [6.3 verification and handoff](milestone-6.3-handoff.md).
 
 ## Outcome
 
@@ -143,6 +143,12 @@ Acceptance:
 
 ### 6.3 — Managed tags and recipe classification
 
+Implemented: V6 adds an initially empty catalogue with fixed Meal type, Cuisine, and Style groups, a database uniqueness index for normalized names, and recipe/tag associations. Active members can list/select tags; only administrators can create/rename them. Tag IDs and groups remain stable. Recipe selections are deduplicated, limited to 30 IDs, validated before writes, and saved atomically under the recipe version check. Recipe summaries and details include current tag names.
+
+Manage tags is accessible from the library, detail, and administrator recipe editor. Recipe and tag drafts remain mounted across navigation; replacing a changed tag editor requires explicit discard. Selection errors, catalogue retry, duplicate-name feedback, submission locking, empty catalogues, refreshed labels, and focus return have targeted coverage.
+
+Verification: backend `verify` passed **32 tests, zero skipped**, including PostgreSQL concurrency, rollback, fresh schema, V4-to-V6 account/meal preservation, and V5-to-V6 recipe preservation. **50 targeted frontend tests**, changed-file lint/format checks, and the production build passed. The initial five tag UI scenarios failed before implementation; later focused tests reproduced focus-return and stale-label defects before their fixes. The initial backend red run was blocked by Docker availability, so it is not counted as behavioral TDD evidence. Browser smoke checks, the full frontend suite, and live frontend/backend workflows remain deferred to 6.6. [Detailed handoff](milestone-6.3-handoff.md).
+
 Deliver the tag catalogue, administrator create/rename view, recipe selection controls, and tag display on library rows and details.
 
 Acceptance:
@@ -192,4 +198,4 @@ Photos, avatars/profiles, favourites, curated Home/collections, normalized dish 
 
 Milestone 6 is complete when members can create, find, maintain, and cook from reusable recipes under the confirmed permission policy; administrator-managed tags and all discovery semantics work; old meal data and workflows remain intact; and integrated, migration, responsive, and keyboard checks are recorded with no blocking defects in scope.
 
-Next: **6.3 — Managed tags and recipe classification**. No commit, push, or deployment was performed as part of 6.2.
+Next: **6.4 — Search, filters, sorting, and pagination**. No commit, push, or deployment was performed as part of 6.3.

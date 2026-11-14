@@ -23,7 +23,9 @@ class RecipeInput(
     ingredients: List<IngredientInput?>,
     instructions: List<StepInput?>,
     @field:Min(0) val version: Long? = null,
+    tagIds: List<UUID?> = emptyList(),
 ) {
+    @field:Size(max = 30) val tagIds = tagIds.map { requireNotNull(it) { "Tag IDs cannot be null" } }
     @field:NotBlank @field:Size(max = 200) val name = name.trim()
     @field:Size(max = 5000) val notes = notes?.trim()?.ifEmpty { null }
     @field:Valid @field:Size(min = 1, max = 100)
@@ -32,12 +34,13 @@ class RecipeInput(
     val instructions = instructions.map { requireNotNull(it) { "Instruction steps cannot be null" } }
 }
 
-data class RecipeSummary(val id: UUID, val name: String, val servings: Int?, val canEdit: Boolean)
+data class RecipeSummary(val id: UUID, val name: String, val servings: Int?, val canEdit: Boolean, val tags: List<RecipeTag>)
 data class RecipePage(val items: List<RecipeSummary>, val page: Int, val size: Int, val totalElements: Long, val totalPages: Long)
 data class RecipeDetail(
     val id: UUID, val name: String, val servings: Int?, val notes: String?,
     val ingredients: List<IngredientInput>, val instructions: List<StepInput>,
     val createdBy: UUID, val createdAt: Instant, val updatedAt: Instant, val version: Long, val canEdit: Boolean,
+    val tags: List<RecipeTag>,
 )
 
 class RecipeNotFoundException : RuntimeException("Recipe not found")

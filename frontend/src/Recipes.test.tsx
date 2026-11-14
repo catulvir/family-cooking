@@ -75,6 +75,7 @@ beforeEach(() => {
         return logoutFailure ? respond({}, 503) : new Response(null, { status: 204 })
       if (path === '/api/v1/admin/users') return respond([])
       if (path === '/api/v1/dishes') return respond([])
+      if (path === '/api/v1/recipe-tags') return respond({ MEAL_TYPE: [], CUISINE: [], STYLE: [] })
       if (path.startsWith('/api/v1/recipes') && init.method) {
         writes.push(init)
         if (deferSave)
