@@ -52,7 +52,10 @@ export default function Recipes({ active }: { active: boolean }) {
     recipesApi
       .get(view.id)
       .then((recipe) => {
-        if (!cancelled) setView({ kind: 'detail', id: recipe.id, recipe })
+        if (!cancelled) {
+          setDetailError('')
+          setView({ kind: 'detail', id: recipe.id, recipe })
+        }
       })
       .catch((reason) => {
         if (!cancelled) setDetailError(messageFrom(reason))
@@ -87,6 +90,9 @@ export default function Recipes({ active }: { active: boolean }) {
     setListRequest((current) => ({ ...current, revision: current.revision + 1 }))
   }
   const changePage = (next: number) => {
+    // Move focus to a stable anchor before the paging controls unmount. Loading
+    // and request completion can then leave focus alone, even after navigation.
+    region.current?.querySelector<HTMLElement>('#recipes-list-title')?.focus()
     setLoading(true)
     setListError('')
     setResults(null)
@@ -94,6 +100,7 @@ export default function Recipes({ active }: { active: boolean }) {
   }
   const saved = (recipe: Recipe) => {
     setNotice('Recipe saved.')
+    setDetailError('')
     setView({ kind: 'detail', id: recipe.id, recipe })
     reloadList()
   }
@@ -248,6 +255,7 @@ export default function Recipes({ active }: { active: boolean }) {
           onSaved={saved}
           onReloaded={(recipe) => {
             setNotice('Latest recipe loaded.')
+            setDetailError('')
             setView({ kind: 'detail', id: recipe.id, recipe })
             reloadList()
           }}

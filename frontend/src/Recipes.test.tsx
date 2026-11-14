@@ -31,6 +31,8 @@ let role: 'MEMBER' | 'ADMIN'
 let deferRead: boolean
 let pendingRead: (() => void) | undefined
 let detailReads: number
+let deferList: boolean
+let pendingList: (() => void) | undefined
 beforeEach(() => {
   saved = structuredClone(recipe)
   entries = []
@@ -45,6 +47,8 @@ beforeEach(() => {
   deferRead = false
   pendingRead = undefined
   detailReads = 0
+  deferList = false
+  pendingList = undefined
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string, init: RequestInit = {}) => {
@@ -97,6 +101,10 @@ beforeEach(() => {
         return respond(saved, init.method === 'POST' ? 201 : 200)
       }
       if (path === '/api/v1/recipes') {
+        if (deferList)
+          await new Promise<void>((resolve) => {
+            pendingList = resolve
+          })
         if (readFailure === 'list') return respond({}, 503)
         const page = Number(parsed.searchParams.get('page') ?? 0)
         return respond({
@@ -457,11 +465,66 @@ it('pages the library and keeps the page when returning from detail', async () =
     name: index === 20 ? saved.name : `Recipe ${index}`,
   }))
   await openLibrary()
-  fireEvent.click(await screen.findByRole('button', { name: 'Next' }))
+  const next = await screen.findByRole('button', { name: 'Next' })
+  next.focus()
+  fireEvent.click(next)
+  await screen.findByText('Page 2 of 2')
+  expect(screen.getByRole('heading', { name: 'Recipes' })).toHaveFocus()
   fireEvent.click(await screen.findByRole('button', { name: 'Pumpkin soup' }))
   fireEvent.click(await screen.findByRole('button', { name: 'Back to recipes' }))
   expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument()
   await waitFor(() => expect(screen.getByRole('button', { name: 'Pumpkin soup' })).toHaveFocus())
+  const previous = screen.getByRole('button', { name: 'Previous' })
+  previous.focus()
+  fireEvent.click(previous)
+  await screen.findByText('Page 1 of 2')
+  expect(screen.getByRole('heading', { name: 'Recipes' })).toHaveFocus()
+})
+
+it.each(['success', 'failure', 'navigation'] as const)(
+  'keeps pagination focus predictable during a delayed %s',
+  async (outcome) => {
+    entries = Array.from({ length: 21 }, (_, index) => ({
+      ...saved,
+      id: `item-${index}`,
+      name: `Recipe ${index}`,
+    }))
+    await openLibrary()
+    const next = await screen.findByRole('button', { name: 'Next' })
+    deferList = true
+    next.focus()
+    fireEvent.click(next)
+    await waitFor(() => expect(pendingList).toBeDefined())
+    expect(screen.getByRole('heading', { name: 'Recipes' })).toHaveFocus()
+    if (outcome === 'failure') readFailure = 'list'
+    if (outcome === 'navigation') fireEvent.click(screen.getByRole('button', { name: 'Journal' }))
+    pendingList!()
+    if (outcome === 'failure') await screen.findByRole('alert')
+    else await screen.findByText('Page 2 of 2')
+    expect(
+      screen.getByRole('heading', { name: outcome === 'navigation' ? 'Meal journal' : 'Recipes' }),
+    ).toHaveFocus()
+  },
+)
+
+it('clears a failed detail error when a newly created recipe opens', async () => {
+  entries = [saved]
+  readFailure = 'detail'
+  await openLibrary()
+  fireEvent.click(await screen.findByRole('button', { name: 'Pumpkin soup' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong')
+  fireEvent.click(screen.getByRole('button', { name: 'Back to recipes' }))
+  fireEvent.click(screen.getByRole('button', { name: 'New recipe' }))
+  fireEvent.change(screen.getByLabelText('Recipe name'), {
+    target: { value: 'New recipe after failed detail' },
+  })
+  fireEvent.change(screen.getByLabelText('Ingredient 1'), { target: { value: 'Water' } })
+  fireEvent.change(screen.getByLabelText('Step 1'), { target: { value: 'Boil.' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Save recipe' }))
+  await screen.findByRole('heading', { name: 'New recipe after failed detail' })
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+  expect(writes).toHaveLength(1)
 })
 
 it('retries failed library and detail requests', async () => {

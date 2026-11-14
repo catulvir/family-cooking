@@ -26,3 +26,9 @@ The frontend tests use synthetic HTTP responses. There were no backend, database
 Per [project instructions](../AGENTS.md), **no browser smoke review or full frontend suite was run for 6.2**. Real-browser keyboard/layout checks, the wider regression suite, and browser-to-backend verification remain in 6.6. Draft persistence across reloads, automatic conflict merging, and force overwrite remain outside scope.
 
 No commit, push, or deployment was performed.
+
+## Review follow-up
+
+Two recipe navigation defects were fixed after 6.2 review. Previous/Next now moves focus to the persistent library heading before clearing the results, retaining keyboard position through loading and avoiding focus changes on delayed completion after navigation. Successful detail fetches, saves, and conflict reloads clear any earlier detail error, so a newly created recipe cannot display an unrelated failed-read message.
+
+The strengthened paging test and four new regression cases failed before the fixes. Targeted verification then passed ten selected recipe tests (13 unrelated cases excluded), changed-file lint/format checks, and the production build. Coverage includes both paging directions, delayed success/failure, navigation during loading, and creating a recipe after a failed detail request. Browser smoke checks and the full frontend suite remain deferred to 6.6.
