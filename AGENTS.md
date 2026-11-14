@@ -1,5 +1,10 @@
 # Project instructions
 
+## Backend code organization
+
+- Generally split backend DTOs, repositories, services, and controllers into separate files within their domain module, following neighboring code (for example, `RecipeTagDtos.kt`, `RecipeTagRepository.kt`, `RecipeTagService.kt`, and `RecipeTagController.kt`).
+- Keep related request/response types and small supporting types together when useful; avoid combining the persistence, business logic, and HTTP layers in a single file.
+
 ## Verification timing
 
 - Run browser smoke checks and extensive frontend test suites only during the final step of a milestone, or when the user explicitly requests them earlier.

@@ -299,3 +299,27 @@ it('fresh recipe responses display names renamed by another administrator', asyn
   await screen.findByRole('heading', { name: 'Soup' })
   expect(screen.getByText('Renamed elsewhere')).toBeVisible()
 })
+
+it.each(['empty', 'populated'])(
+  'refreshes an initially %s catalogue whenever a member opens New recipe',
+  async (initialCatalogue) => {
+    role = 'MEMBER'
+    if (initialCatalogue === 'empty') tags = []
+    await library()
+
+    tags.push({ id: 'added-elsewhere', name: 'Breakfast', group: 'MEAL_TYPE' })
+    fireEvent.click(screen.getByRole('button', { name: 'Journal' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Recipes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'New recipe' }))
+    expect(await screen.findByRole('checkbox', { name: 'Breakfast' })).not.toBeChecked()
+    expect(screen.queryByText(/No tags yet/)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    tags.push({ id: 'added-later', name: 'Quick', group: 'STYLE' })
+    fireEvent.click(screen.getByRole('button', { name: 'New recipe' }))
+    const quick = await screen.findByRole('checkbox', { name: 'Quick' })
+    fireEvent.click(quick)
+    expect(quick).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Breakfast' })).toBeVisible()
+  },
+)

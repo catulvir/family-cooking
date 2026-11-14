@@ -26,3 +26,11 @@ Passed:
 Frontend interaction tests use synthetic HTTP responses. Per [project instructions](../AGENTS.md), **no browser smoke review or full frontend suite ran for 6.3**. Real browser layout, responsive/zoom and keyboard review, and live frontend-to-backend workflows remain in 6.6. Search/filter controls remain in 6.4; recipe/meal links remain in 6.5. Draft recovery across page reloads and concurrent tag-rename conflict detection are outside this slice's contract.
 
 No commit, push, or deployment was performed.
+
+## Review follow-up — catalogue refresh and code organization
+
+Opening New recipe now refreshes the tag catalogue. Members see tags added by another administrator after their first Recipes visit, including when the original catalogue was empty and when reopening the editor later. Two regression cases reproduced the stale choices before the fix and passed afterward.
+
+Catalogue state and refresh logic now live in `useRecipeTagCatalogue.ts`; library and detail rendering live in `RecipeLibrary.tsx` and `RecipeDetail.tsx`. `Recipes.tsx` retains navigation, focus coordination, and draft lifetime. Backend tag DTOs, repository, service, and controller now have separate files within the recipes module, and `AGENTS.md` records this as the general backend organization convention. The backend split preserves behavior and does not change the schema or API.
+
+Follow-up verification passed **36 targeted frontend tests** in `RecipeTags.test.tsx` and `Recipes.test.tsx`, changed-file Oxlint/Prettier checks, the TypeScript/Vite production build, and `git diff --check`. Backend `./mvnw.cmd clean verify` passed **32 tests, zero failures/errors/skipped**, using PostgreSQL/Testcontainers. Browser smoke checks and the full frontend suite remain deferred to 6.6.
