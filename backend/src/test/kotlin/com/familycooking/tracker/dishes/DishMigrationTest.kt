@@ -23,7 +23,7 @@ class DishMigrationTest : PostgresTestSupport() {
                 """.trimIndent())
             }
         }
-        val upgraded = Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema).load()
+        val upgraded = Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema).target("4").load()
         assertEquals(2, upgraded.migrate().migrationsExecuted)
         upgraded.validate()
         dataSource.connection.use { connection ->

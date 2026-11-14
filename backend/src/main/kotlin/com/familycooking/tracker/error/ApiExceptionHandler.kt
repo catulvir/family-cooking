@@ -11,6 +11,18 @@ import java.time.Instant
 
 @RestControllerAdvice
 class ApiExceptionHandler {
+    @ExceptionHandler(com.familycooking.tracker.recipes.RecipeNotFoundException::class)
+    fun handleRecipeNotFound(request: HttpServletRequest): ResponseEntity<ApiError> =
+        error(HttpStatus.NOT_FOUND, "RECIPE_NOT_FOUND", "Recipe not found", request)
+
+    @ExceptionHandler(com.familycooking.tracker.recipes.RecipeConflictException::class)
+    fun handleRecipeConflict(exception: com.familycooking.tracker.recipes.RecipeConflictException, request: HttpServletRequest): ResponseEntity<ApiError> =
+        error(HttpStatus.CONFLICT, "RECIPE_CONFLICT", exception.message!!, request)
+
+    @ExceptionHandler(com.familycooking.tracker.recipes.RecipeRequestException::class)
+    fun handleRecipeRequest(exception: com.familycooking.tracker.recipes.RecipeRequestException, request: HttpServletRequest): ResponseEntity<ApiError> =
+        error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", exception.message!!, request)
+
     @ExceptionHandler(com.familycooking.tracker.dishes.DishNotFoundException::class)
     fun handleDishNotFound(request: HttpServletRequest): ResponseEntity<ApiError> =
         error(HttpStatus.NOT_FOUND, "DISH_NOT_FOUND", "Dish not found", request)
