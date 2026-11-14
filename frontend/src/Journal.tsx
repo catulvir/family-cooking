@@ -1,13 +1,24 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { FormikProvider, useFormik } from 'formik'
-import { AppForm, FormField, FormError } from './forms'
-import { mealSchema, type MealValues } from './formSchemas'
-import { dishesApi, DishApiError, type Dish, type DishInput } from './api/dishes'
-import { ArrowLeft, Pencil, Plus, Save } from 'lucide-react'
+import { dishesApi, type Dish, type RecipeLink, type CookRequest } from './api/dishes'
+import { ArrowLeft, Pencil, Plus } from 'lucide-react'
+import MealForm from './MealForm'
 
-type JournalView = { kind: 'list' } | { kind: 'detail'; dish: Dish } | { kind: 'form'; dish?: Dish }
+type JournalView =
+  | { kind: 'list' }
+  | { kind: 'detail'; dish: Dish }
+  | { kind: 'form'; dish?: Dish; sourceRecipe?: RecipeLink; draftId?: string }
 
-export default function Journal({ active = true }: { active?: boolean }) {
+export default function Journal({
+  active = true,
+  cookRequest,
+  onOpenRecipe,
+  onReturnToRecipe,
+}: {
+  active?: boolean
+  cookRequest?: CookRequest | null
+  onOpenRecipe?: (recipe: RecipeLink) => void
+  onReturnToRecipe?: (recipe: RecipeLink) => void
+}) {
   const [dishes, setDishes] = useState<Dish[]>([])
   const [view, setView] = useState<JournalView>({ kind: 'list' })
   const [loading, setLoading] = useState(true)
@@ -18,14 +29,32 @@ export default function Journal({ active = true }: { active?: boolean }) {
   const addButton = useRef<HTMLButtonElement>(null)
   const editButton = useRef<HTMLButtonElement>(null)
   const mealButtons = useRef(new Map<string, HTMLButtonElement>())
+  const recipeButton = useRef<HTMLButtonElement>(null)
+  const [lastCookRequest, setLastCookRequest] = useState<string | null>(null)
+  const [pendingRecipe, setPendingRecipe] = useState<CookRequest | null>(null)
+  const startRecipeMeal = (recipe: RecipeLink) => {
+    setPendingRecipe(null)
+    setNotice('')
+    setView({ kind: 'form', sourceRecipe: recipe, draftId: crypto.randomUUID() })
+  }
+  // Consume each navigation request once, preserving an already-mounted editor.
+  if (cookRequest && lastCookRequest !== cookRequest.token) {
+    setLastCookRequest(cookRequest.token)
+    if (view.kind === 'form') setPendingRecipe(cookRequest)
+    else {
+      setPendingRecipe(null)
+      setNotice('')
+      setView({ kind: 'form', sourceRecipe: cookRequest.recipe, draftId: cookRequest.token })
+    }
+  }
   useLayoutEffect(() => {
     if (active) {
       const target =
         returnFocus.current?.() ??
         region.current?.querySelector<HTMLElement>(`#journal-${view.kind}-title`)
       target?.focus()
+      returnFocus.current = null
     }
-    returnFocus.current = null
   }, [active, view])
 
   const load = () => {
@@ -62,6 +91,17 @@ export default function Journal({ active = true }: { active?: boolean }) {
   return (
     <section ref={region} className="journal" aria-labelledby={`journal-${view.kind}-title`}>
       <output>{view.kind === 'list' && loading ? 'Loading meals…' : notice}</output>
+      {pendingRecipe && view.kind !== 'form' && (
+        <section aria-label="Requested new meal">
+          <p>Your previous meal is saved. Start a new meal from {pendingRecipe.recipe.name}?</p>
+          <div className="form-actions">
+            <button className="secondary" onClick={() => setPendingRecipe(null)}>
+              Continue existing meal
+            </button>
+            <button onClick={() => startRecipeMeal(pendingRecipe.recipe)}>Start a new meal</button>
+          </div>
+        </section>
+      )}
       {view.kind === 'list' && (
         <>
           <div className="section-row">
@@ -111,7 +151,16 @@ export default function Journal({ active = true }: { active?: boolean }) {
       {view.kind === 'detail' && (
         <MealDetail
           editRef={editButton}
+          recipeRef={recipeButton}
           dish={view.dish}
+          onOpenRecipe={
+            onOpenRecipe
+              ? (recipe) => {
+                  returnFocus.current = () => recipeButton.current
+                  onOpenRecipe(recipe)
+                }
+              : undefined
+          }
           onBack={() => {
             setNotice('')
             returnFocus.current = () => mealButtons.current.get(view.dish.id)
@@ -125,10 +174,18 @@ export default function Journal({ active = true }: { active?: boolean }) {
       )}
       {view.kind === 'form' && (
         <MealForm
+          key={view.draftId ?? view.dish?.id ?? 'new-meal'}
           dish={view.dish}
+          sourceRecipe={view.sourceRecipe}
+          active={active}
+          pendingRecipe={pendingRecipe}
+          onContinue={() => setPendingRecipe(null)}
+          onReplace={startRecipeMeal}
           onCancel={() => {
+            setPendingRecipe(null)
             returnFocus.current = () => (view.dish ? editButton.current : addButton.current)
             setView(view.dish ? { kind: 'detail', dish: view.dish } : { kind: 'list' })
+            if (view.sourceRecipe) onReturnToRecipe?.(view.sourceRecipe)
           }}
           onSaved={saved}
         />
@@ -150,14 +207,18 @@ function compareDishes(left: Dish, right: Dish) {
 
 function MealDetail({
   editRef,
+  recipeRef,
   dish,
   onBack,
   onEdit,
+  onOpenRecipe,
 }: {
   editRef: React.Ref<HTMLButtonElement>
+  recipeRef: React.Ref<HTMLButtonElement>
   dish: Dish
   onBack: () => void
   onEdit: () => void
+  onOpenRecipe?: (recipe: RecipeLink) => void
 }) {
   return (
     <article className="dish-detail">
@@ -170,6 +231,11 @@ function MealDetail({
       </h2>
       {dish.location && <p>{dish.location}</p>}
       {dish.notes && <p className="notes">{dish.notes}</p>}
+      {dish.recipe && onOpenRecipe && (
+        <button ref={recipeRef} className="secondary" onClick={() => onOpenRecipe(dish.recipe!)}>
+          View recipe: {dish.recipe.name}
+        </button>
+      )}
       {dish.canEdit && (
         <button ref={editRef} onClick={onEdit}>
           <Pencil aria-hidden="true" /> Edit meal
@@ -177,118 +243,6 @@ function MealDetail({
       )}
     </article>
   )
-}
-
-function MealForm({
-  dish,
-  onCancel,
-  onSaved,
-}: {
-  dish?: Dish
-  onCancel: () => void
-  onSaved: (dish: Dish) => void
-}) {
-  const [initialValues] = useState<MealValues>(() => ({
-    name: dish?.name ?? '',
-    preparedOn: dish?.preparedOn ?? localToday(),
-    location: dish?.location ?? '',
-    notes: dish?.notes ?? '',
-  }))
-  const formik = useFormik({
-    initialValues,
-    validationSchema: mealSchema,
-    validateOnChange: false,
-    validateOnBlur: false,
-    onSubmit: async (values, helpers) => {
-      const input: DishInput = {
-        name: values.name.trim(),
-        preparedOn: values.preparedOn,
-        location: values.location.trim() || null,
-        notes: values.notes.trim() || null,
-      }
-      try {
-        onSaved(dish ? await dishesApi.update(dish.id, input) : await dishesApi.create(input))
-      } catch (reason) {
-        helpers.setStatus(messageFrom(reason))
-        if (reason instanceof DishApiError) helpers.setErrors(reason.fieldErrors)
-      }
-    },
-  })
-  const { dirty, isSubmitting: saving } = formik
-  const [confirmDiscard, setConfirmDiscard] = useState(false)
-  const cancelButton = useRef<HTMLButtonElement>(null)
-  const keepEditingButton = useRef<HTMLButtonElement>(null)
-  useEffect(() => {
-    if (confirmDiscard) keepEditingButton.current?.focus()
-  }, [confirmDiscard])
-  const keepEditing = () => {
-    setConfirmDiscard(false)
-    cancelButton.current?.focus()
-  }
-  return (
-    <FormikProvider value={formik}>
-      <AppForm className="form dish-form">
-        <h2 id="journal-form-title" tabIndex={-1}>
-          {dish ? 'Edit meal' : 'Record a meal'}
-        </h2>
-        <FormField name="name" label="Meal name" />
-        <FormField name="preparedOn" label="Meal date" type="date" />
-        <FormField name="location" label="Location (optional)" maxLength={200} />
-        <FormField name="notes" label="Notes (optional)" as="textarea" maxLength={5000} />
-        <FormError />
-        <div className="form-actions">
-          <button disabled={saving}>
-            <Save aria-hidden="true" />
-            {saving ? 'Saving…' : 'Save meal'}
-          </button>
-          <button
-            ref={cancelButton}
-            type="button"
-            className="secondary"
-            onClick={() => (dirty ? setConfirmDiscard(true) : onCancel())}
-            disabled={saving}
-          >
-            Cancel
-          </button>
-        </div>
-        {confirmDiscard && (
-          <section aria-label="Unsaved changes">
-            <output>Discard your unsaved changes?</output>
-            <div className="form-actions">
-              <button
-                ref={keepEditingButton}
-                onKeyDown={(event) => {
-                  if (event.key === 'Escape') keepEditing()
-                }}
-                type="button"
-                onClick={keepEditing}
-              >
-                Keep editing
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onKeyDown={(event) => {
-                  if (event.key === 'Escape') keepEditing()
-                }}
-                disabled={saving}
-                onClick={onCancel}
-              >
-                Discard changes
-              </button>
-            </div>
-          </section>
-        )}
-      </AppForm>
-    </FormikProvider>
-  )
-}
-
-function localToday() {
-  const now = new Date()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${now.getFullYear()}-${month}-${day}`
 }
 
 function formatDate(value: string) {

@@ -22,10 +22,10 @@ class RecipeMigrationTest : PostgresTestSupport() {
         jdbc.update("""INSERT INTO $schema.dishes (id, name, prepared_on, location, notes, created_by, created_at, updated_at)
             VALUES ('00000000-0000-0000-0000-000000000002', 'Legacy meal', '2026-11-08', 'Home', 'Unchanged notes',
                 '00000000-0000-0000-0000-000000000001', '2026-11-08T12:00:00Z', '2026-11-09T12:00:00Z')""")
-        fun snapshot(table: String) = jdbc.queryForObject("SELECT row_to_json(t)::text FROM $schema.$table t", String::class.java)
+        fun snapshot(table: String) = jdbc.queryForObject("SELECT (to_jsonb(t) - 'recipe_id')::text FROM $schema.$table t", String::class.java)
         val account = snapshot("app_users"); val dish = snapshot("dishes")
         val upgraded = Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema).load()
-        assertEquals(2, upgraded.migrate().migrationsExecuted)
+        assertEquals(3, upgraded.migrate().migrationsExecuted)
         upgraded.validate()
         assertEquals(account, snapshot("app_users")); assertEquals(dish, snapshot("dishes"))
         for (table in listOf("recipes", "recipe_ingredients", "recipe_steps", "recipe_tags", "recipe_tag_assignments")) {
@@ -48,7 +48,7 @@ class RecipeMigrationTest : PostgresTestSupport() {
         val tables = listOf("app_users", "recipes", "recipe_ingredients", "recipe_steps")
         val before = tables.associateWith(::snapshot)
         val upgraded = Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema).load()
-        assertEquals(1, upgraded.migrate().migrationsExecuted)
+        assertEquals(2, upgraded.migrate().migrationsExecuted)
         upgraded.validate()
         assertEquals(before, tables.associateWith(::snapshot))
         for (table in listOf("recipe_tags", "recipe_tag_assignments")) assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM $schema.$table", Int::class.java))

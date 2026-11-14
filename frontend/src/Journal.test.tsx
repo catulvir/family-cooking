@@ -220,6 +220,7 @@ describe('family cooking journal', () => {
     expect(JSON.parse(creation.init.body as string)).toEqual({
       name: 'Pasta',
       preparedOn: today,
+      recipeId: null,
       location: null,
       notes: null,
     })

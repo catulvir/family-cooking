@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { recipesApi, type Recipe, type RecipeTag } from './api/recipes'
+import type { RecipeLink } from './api/dishes'
 import RecipeForm from './RecipeForm'
 import TagManagement from './TagManagement'
 import RecipeLibrary from './RecipeLibrary'
@@ -13,7 +14,15 @@ type View =
   | { kind: 'detail'; id: string; recipe?: Recipe }
   | { kind: 'form'; recipe?: Recipe }
 
-export default function Recipes({ active, isAdmin }: { active: boolean; isAdmin: boolean }) {
+export default function Recipes({
+  active,
+  isAdmin,
+  onRecord,
+}: {
+  active: boolean
+  isAdmin: boolean
+  onRecord?: (recipe: RecipeLink) => void
+}) {
   const [managingTags, setManagingTags] = useState(false)
   const [tagsVisited, setTagsVisited] = useState(false)
   const { tagState, refreshAfterSave } = useRecipeTagCatalogue()
@@ -137,6 +146,7 @@ export default function Recipes({ active, isAdmin }: { active: boolean; isAdmin:
           )}
           {view.kind === 'detail' && (
             <RecipeDetail
+              onRecord={onRecord}
               recipe={view.recipe}
               error={detailError}
               onBack={() => back(view.id)}

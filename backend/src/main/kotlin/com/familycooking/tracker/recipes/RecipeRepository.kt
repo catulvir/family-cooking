@@ -20,6 +20,10 @@ class RecipeRepository(private val jdbc: JdbcTemplate) {
     ) }
 
     internal fun find(id: UUID) = jdbc.query("SELECT * FROM recipes WHERE id = ?", mapper, id).firstOrNull()
+    fun references(ids: Set<UUID>): List<RecipeReference> = if (ids.isEmpty()) emptyList() else jdbc.query(
+        "SELECT id, name FROM recipes WHERE id IN (${ids.joinToString(",") { "?" }})",
+        RowMapper { rs, _ -> RecipeReference(rs.getObject("id", UUID::class.java), rs.getString("name")) }, *ids.toTypedArray(),
+    )
     internal fun page(page: Int, size: Int, search: RecipeSearch): List<RecipeRecord> {
         val (where, parameters) = predicate(search)
         val order = when (search.sort) {

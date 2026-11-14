@@ -1,5 +1,6 @@
 import { ArrowLeft, Pencil } from 'lucide-react'
 import type { Recipe } from './api/recipes'
+import type { RecipeLink } from './api/dishes'
 import { TagLabels } from './RecipeTags'
 
 export default function RecipeDetail({
@@ -8,19 +9,25 @@ export default function RecipeDetail({
   onBack,
   onRetry,
   onEdit,
+  onRecord,
+  backLabel = 'Back to recipes',
+  titleId = 'recipes-detail-title',
 }: {
   recipe?: Recipe
   error: string
   onBack: () => void
   onRetry: () => void
-  onEdit: () => void
+  onEdit?: () => void
+  onRecord?: (recipe: RecipeLink) => void
+  backLabel?: string
+  titleId?: string
 }) {
   return (
     <article className="dish-detail">
       <button className="secondary" onClick={onBack}>
-        <ArrowLeft aria-hidden="true" /> Back to recipes
+        <ArrowLeft aria-hidden="true" /> {backLabel}
       </button>
-      <h2 id="recipes-detail-title" tabIndex={-1}>
+      <h2 id={titleId} tabIndex={-1}>
         {recipe?.name ?? 'Recipe'}
       </h2>
       {error ? (
@@ -58,7 +65,12 @@ export default function RecipeDetail({
             </section>
           </div>
           {recipe.notes && <p className="notes">{recipe.notes}</p>}
-          {recipe.canEdit && (
+          {onRecord && (
+            <button onClick={() => onRecord({ id: recipe.id, name: recipe.name })}>
+              Record cooking this recipe
+            </button>
+          )}
+          {recipe.canEdit && onEdit && (
             <button data-return="edit" onClick={onEdit}>
               <Pencil aria-hidden="true" /> Edit recipe
             </button>
