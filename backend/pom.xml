@@ -100,6 +100,7 @@
             <!-- Render's build command creates this directory before Maven packages the jar. -->
             <resource>
                 <directory>${project.basedir}/../frontend/dist</directory>
+                <targetPath>static</targetPath>
                 <filtering>false</filtering>
             </resource>
         </resources>

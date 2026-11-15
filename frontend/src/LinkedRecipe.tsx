@@ -50,6 +50,7 @@ export default function LinkedRecipe({
         onBack={onBack}
         onRecord={onRecord}
         onRetry={() => {
+          region.current?.querySelector('h2')?.focus()
           setError('')
           setRequest({ id })
         }}

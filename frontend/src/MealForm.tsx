@@ -119,6 +119,7 @@ export default function MealForm({
                 ref={continueButton}
                 type="button"
                 className="secondary"
+                disabled={!!discard}
                 onClick={() => {
                   continueButton.current?.closest('form')?.querySelector<HTMLElement>('h2')?.focus()
                   onContinue()

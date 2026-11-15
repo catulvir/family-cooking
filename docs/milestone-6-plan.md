@@ -1,6 +1,6 @@
 # Milestone 6 — Recipe library and discovery
 
-Status: in progress. Slices 6.1–6.4 implemented locally on 2026-11-14; 6.5–6.6 remain. Recipe edit permissions and administrator-managed tags were confirmed during planning. Unimplemented details below remain proposed implementation defaults. [6.1 verification and limitations](reviews/milestone-6.1/README.md). [6.2 targeted verification and handoff](milestone-6.2-handoff.md). [6.3 verification and handoff](milestone-6.3-handoff.md). [6.4 verification and handoff](milestone-6.4-handoff.md).
+Status: complete locally on 2026-11-15. Slices 6.1–6.6 are implemented and verified within the [final handoff's stated scope and limits](milestone-6-handoff.md). Recipe edit permissions and administrator-managed tags were confirmed during planning. The contracts below record the accepted implementation. [6.1 verification](reviews/milestone-6.1/README.md), [6.2 handoff](milestone-6.2-handoff.md), [6.3 handoff](milestone-6.3-handoff.md), [6.4 handoff](milestone-6.4-handoff.md), [6.5 handoff](milestone-6.5-handoff.md).
 
 ## Outcome
 
@@ -178,6 +178,8 @@ Acceptance:
 
 ### 6.5 — Optional recipe links in the meal journal
 
+Implemented: V7 adds nullable indexed recipe linkage without changing legacy meal content. Paginated selection, recipe-started meals, protected create/edit drafts and current-recipe previews preserve independent meal fields and recipe-library state. Omitted update fields retain links; explicit null clears them. The initial backend/migration and frontend scenarios failed before implementation. Backend verification reached 41 passing tests; final frontend and browser verification is recorded under 6.6. [Detailed handoff](milestone-6.5-handoff.md).
+
 Add the nullable dish relationship, recipe picker, recipe-to-meal action, and navigation from linked meal detail. Keep recipe and meal permissions independent.
 
 Acceptance:
@@ -190,6 +192,8 @@ Acceptance:
 - Editing a recipe leaves saved meal fields unchanged; linked detail opens the updated recipe and returns to the originating meal correctly.
 
 ### 6.6 — Integrated verification and handoff
+
+Completed on 2026-11-15: **44 backend tests (zero skipped), 128 frontend tests**, lint, formatting, production build and diff checks passed. Live packaged-app workflows passed against isolated PostgreSQL, including real conflicts and forbidden edits. **30 captures** cover 360/768/1280px and **six** cover actual 200% Chrome zoom. Final review fixed frontend JAR placement and public shell access while retaining API protection; three failing access regressions now pass. [Evidence, reproduction and coverage limits](milestone-6-handoff.md).
 
 - Run backend verification (`.\mvnw.cmd verify` in `backend/`) with PostgreSQL/Testcontainers available. Inspect skipped-test counts: skipped database suites do not establish persistence or migration correctness.
 - Run frontend tests, lint, formatting, and production build using the existing package scripts. Retain authentication, account, journal, draft, CSRF, focus, retry, and submission regressions.
@@ -204,4 +208,4 @@ Photos, avatars/profiles, favourites, curated Home/collections, normalized dish 
 
 Milestone 6 is complete when members can create, find, maintain, and cook from reusable recipes under the confirmed permission policy; administrator-managed tags and all discovery semantics work; old meal data and workflows remain intact; and integrated, migration, responsive, and keyboard checks are recorded with no blocking defects in scope.
 
-Next: **6.5 — Optional recipe links in the meal journal**. No commit, push, or deployment was performed as part of 6.4.
+Next: **milestone 7 — Photos and personal profiles**. No commit, push, or deployment was performed as part of 6.6.

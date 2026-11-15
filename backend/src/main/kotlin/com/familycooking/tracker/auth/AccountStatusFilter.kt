@@ -2,6 +2,7 @@ package com.familycooking.tracker.auth
 
 import com.familycooking.tracker.users.AppUserRepository
 import com.familycooking.tracker.users.UserStatus
+import com.familycooking.tracker.config.frontendRequests
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -12,6 +13,8 @@ import org.springframework.web.filter.OncePerRequestFilter
 
 @Component
 class AccountStatusFilter(private val userRepository: AppUserRepository) : OncePerRequestFilter() {
+    override fun shouldNotFilter(request: HttpServletRequest): Boolean = frontendRequests.matches(request)
+
     override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, filterChain: FilterChain) {
         val authentication = SecurityContextHolder.getContext().authentication
         val principal = authentication?.principal as? AppUserPrincipal
