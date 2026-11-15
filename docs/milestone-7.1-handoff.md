@@ -22,6 +22,10 @@ Profile drafts survive navigation and failed saves/logout. Save and reload opera
 
 The full frontend suite, browser smoke checks, responsive/zoom review, and real hosted workflows are deferred to **7.6**, per AGENTS.md. No browser or production behaviour is claimed from these component/API tests. No dependencies were added.
 
+## Readability follow-up
+
+Extracted `ProfileForm` into its own frontend file, keeping the form body unchanged and leaving loading/retry handling in `Profile.tsx`. Expanded setup, request blocks, SQL fixtures, and assertions in `ProfileApiTest` and `ProfileMigrationTest` without changing their scenarios. Focused verification passed **9 frontend tests and 6 backend tests (zero skipped)**, changed-file lint/format checks, TypeScript/production build, and diff checks. Browser and full frontend verification remain deferred to 7.6.
+
 ## Setup timing
 
 **No manual Render or Supabase setup changes are needed for 7.1.** Deploy through the existing workflow when ready; Flyway applies V8 at backend startup. Keep the existing database, cookie, and CORS environment values. No new environment variable is required for display names.
