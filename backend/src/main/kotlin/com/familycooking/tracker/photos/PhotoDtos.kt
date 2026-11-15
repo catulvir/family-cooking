@@ -43,6 +43,6 @@ class PhotoException(val status: Int, val code: String, message: String) : Runti
 fun photoUnavailable(): Nothing = throw PhotoException(503, "PHOTO_UNAVAILABLE", "Photos are temporarily unavailable. Please try again later.")
 fun photoConflict(message: String = "The photo changed. Refresh it before trying again."): Nothing = throw PhotoException(409, "PHOTO_CONFLICT", message)
 fun photoMissing(): Nothing = throw PhotoException(404, "PHOTO_NOT_FOUND", "Photo or parent not found.")
-fun invalidPhoto(): Nothing = throw PhotoException(400, "INVALID_PHOTO", "Choose a complete, valid JPEG or PNG image.")
-fun unsupportedPhoto(): Nothing = throw PhotoException(415, "UNSUPPORTED_PHOTO", "Choose a JPEG or non-animated PNG image.")
+fun invalidPhoto(): Nothing = throw PhotoException(400, "INVALID_PHOTO", "Choose a complete, valid JPEG, PNG, or HEIC image.")
+fun unsupportedPhoto(): Nothing = throw PhotoException(415, "UNSUPPORTED_PHOTO", "Choose a JPEG, non-animated PNG, or still HEIC/HEIF image.")
 fun oversizedPhoto(): Nothing = throw PhotoException(413, "PHOTO_TOO_LARGE", "Use an image up to 5 MiB and 24 megapixels.")

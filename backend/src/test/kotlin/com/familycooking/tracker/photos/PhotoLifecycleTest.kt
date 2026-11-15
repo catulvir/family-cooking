@@ -142,9 +142,10 @@ class PhotoLifecycleTest : PostgresTestSupport() {
         path: String = "/api/v1/dishes/$dish/photo", account: AppUser = member,
         operation: UUID = UUID.randomUUID(), expected: UUID? = null, bytes: ByteArray = source,
         includeCsrf: Boolean = true,
+        mime: String = "image/png",
     ): ResultActions {
         val builder = multipart(HttpMethod.PUT, path)
-            .file(MockMultipartFile("file", "../../untrusted.png", "image/png", bytes))
+            .file(MockMultipartFile("file", "../../untrusted", mime, bytes))
             .file(MockMultipartFile("request", "", "application/json", mapper.writeValueAsBytes(PhotoMutationRequest(operation, expected))))
             .with(user(AppUserPrincipal.from(account)))
         if (includeCsrf) builder.with(csrf())
@@ -161,6 +162,30 @@ class PhotoLifecycleTest : PostgresTestSupport() {
         delete("/api/v1/dishes/$dish/photo").with(user(AppUserPrincipal.from(account))).with(csrf())
             .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsBytes(PhotoMutationRequest(operation, id))),
     )
+
+    @Test
+    fun `HEIC submissions use the same protected JPEG storage and replay contract for every parent`() {
+        val bytes = javaClass.getResourceAsStream("/photos/quadrants-6.heic")!!.use { it.readBytes() }
+        for (path in listOf("/api/v1/dishes/$dish/photo", "/api/v1/recipes/$recipe/photo", "/api/v1/profile/avatar")) {
+            val operation = UUID.randomUUID()
+            val result = upload(path = path, operation = operation, bytes = bytes, mime = "image/heic")
+                .andExpect(status().isOk)
+            val id = photoId(result)
+            val replay = upload(path = path, operation = operation, bytes = bytes, mime = "image/heic")
+                .andExpect(status().isOk)
+            assertEquals(id, photoId(replay))
+            read(id, other).andExpect(status().isOk)
+                .andExpect(content().contentType("image/jpeg"))
+                .andExpect(header().string("Cache-Control", "private, no-store"))
+        }
+        assertEquals(6, storage.uploadCount.get())
+        assertEquals(6, storage.objects.size)
+        for (stored in storage.objects.values) {
+            assertEquals(0xff.toByte(), stored[0])
+            assertEquals(0xd8.toByte(), stored[1])
+            assertFalse(String(stored, Charsets.ISO_8859_1).contains("PRIVATE HEIC METADATA"))
+        }
+    }
 
     @Test
     fun `all parents store protected derivatives and repeated operations are idempotent`() {

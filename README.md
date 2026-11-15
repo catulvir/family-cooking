@@ -6,7 +6,7 @@ Private, family-only web application for recording family meals and maintaining 
 
 Latest review follow-up: linked recipes preserve their originating meal after cancelling or saving a cooking draft, and views no longer autofocus on arrival. [Changes and targeted verification](docs/milestone-6-review-fixes.md).
 
-**Milestone 7.2 is implemented locally**: private Storage adapter, V9 metadata/operation tracking, bounded image processing, protected photo APIs, and durable cleanup recovery. Backend verification passed **74 tests, zero skipped**, including real HTTP upload limits. Photos are disabled by default; no frontend upload controls are exposed yet. **Render/Supabase Storage setup can now be prepared** using the [setup runbook](docs/photo-storage-setup.md), before hosted photo acceptance. No hosted changes or deployment were performed. Next: **7.3 — Meal photos**. [7.2 handoff and limits](docs/milestone-7.2-handoff.md), [milestone 7 plan](docs/milestone-7-plan.md).
+**Milestone 7.2 is implemented locally**, including backend HEIC/HEIF-to-JPEG conversion: private Storage adapter, V9 metadata/operation tracking, bounded image processing, protected photo APIs, and durable cleanup recovery. Backend verification passed **81 tests, zero skipped**, plus three Linux codec tests and a packaged Docker conversion smoke check. Photos are disabled by default; no frontend upload controls are exposed yet. **Render/Supabase Storage setup can now be prepared** using the [setup runbook](docs/photo-storage-setup.md), before hosted photo acceptance. Docker includes the HEIC runtime; plain-JAR deployments need its additional codec setup. No hosted changes or deployment were performed. Next: **7.3 — Meal photos**. [7.2 handoff and limits](docs/milestone-7.2-handoff.md), [milestone 7 plan](docs/milestone-7-plan.md).
 
 **Milestone 7.1 is implemented locally**: Account → Profile, optional display names, read-only email, protected drafts and conflict recovery, and immediate signed-in identity refresh. Its verification passed **50 backend tests (zero skipped), 34 focused frontend tests**, changed-file lint/format checks, and production build. Browser and full frontend verification remain deferred to 7.6. [7.1 handoff](docs/milestone-7.1-handoff.md).
 
@@ -56,6 +56,7 @@ Recipe persistence uses transactional JDBC with a version-checked aggregate upda
 - Maven is optional when using the included Maven Wrapper.
 - Node.js 24 with npm
 - Docker Desktop or another Docker-compatible runtime for PostgreSQL and Testcontainers
+- Python 3.12 with the pinned photo codecs for HEIC conversion and backend tests; the backend Docker image includes them. See [codec setup](docs/photo-storage-setup.md#2-configure-the-render-backend).
 
 ## Run locally
 
@@ -107,7 +108,7 @@ Run the backend verification from `backend/`:
 .\mvnw.cmd verify
 ```
 
-The PostgreSQL suites start temporary PostgreSQL 17 containers through Testcontainers. Run with Docker available: domain and migration suites deliberately fail rather than silently skipping database coverage.
+The PostgreSQL suites start temporary PostgreSQL 17 containers through Testcontainers. Run with Docker available: domain and migration suites deliberately fail rather than silently skipping database coverage. Install the [photo codecs](docs/photo-storage-setup.md#2-configure-the-render-backend) and set `PHOTO_HEIC_PYTHON` before running backend tests; actual HEIC fixtures are decoded, not skipped when the dependency is missing. CI also checks Linux conversion limits.
 
 Run the frontend checks from `frontend/`:
 
@@ -138,6 +139,7 @@ Add PostgreSQL migrations under `backend/src/main/resources/db/migration` using 
 | `SESSION_COOKIE_SAME_SITE` | `lax` for same-site deployment; set `none` with `SESSION_COOKIE_SECURE=true` for separate frontend and API origins |
 | `VITE_API_BASE_URL` | Development API origin used by the Vite proxy; configure it in `frontend/.env.local` |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated browser origins allowed to call the API; set this to the deployed frontend URL on Render |
+| `PHOTO_HEIC_PYTHON` | Absolute Python interpreter path with the pinned photo codecs; supplied by the Docker image, defaults to `python3` for plain-JAR/local runs |
 | `PHOTO_STORAGE_ENABLED` | Defaults to `false`; enable the private photo API after Storage configuration |
 | `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | HTTPS project origin and backend-only `sb_secret_...` credential; never frontend variables |
 | `STORAGE_DISH_PHOTOS_BUCKET`, `STORAGE_RECIPE_PHOTOS_BUCKET`, `STORAGE_AVATARS_BUCKET` | Private bucket names; defaults `dish-photos`, `recipe-photos`, `avatars`; see [required restrictions](docs/photo-storage-setup.md) |
@@ -160,7 +162,7 @@ For a same-origin Render deployment, use this build command from the repository 
 npm --prefix frontend ci && npm --prefix frontend run build && cd backend && bash ./mvnw --batch-mode package
 ```
 
-The backend Maven build includes `frontend/dist` in the packaged Spring Boot JAR when that directory exists, so the resulting service serves the React build and API from one origin. Configure Render to start it with `java -jar backend/target/family-cooking-api-0.0.1-SNAPSHOT.jar`, supply a Render PostgreSQL connection as `DATABASE_URL` in JDBC form, and set `PORT` if Render requires it.
+The backend Maven build includes `frontend/dist` in the packaged Spring Boot JAR when that directory exists, so the resulting service serves the React build and API from one origin. Configure Render to start it with `java -jar backend/target/family-cooking-api-0.0.1-SNAPSHOT.jar`, supply a Render PostgreSQL connection as `DATABASE_URL` in JDBC form, and set `PORT` if Render requires it. This plain-JAR path also needs Python 3.12 and the [photo-codec installation and interpreter setting](docs/photo-storage-setup.md#2-configure-the-render-backend) for HEIC; Maven alone does not install native codecs.
 
 For separate Render services, deploy `frontend/` as a Static Site with `npm ci && npm run build` and publish `dist`. Set its build-time `VITE_API_BASE_URL` to the API's public HTTPS URL. Deploy `backend/` as a Docker Web Service with `backend/` as its root directory; its `Dockerfile` builds and starts the API. Set `CORS_ALLOWED_ORIGINS` to the static site's exact HTTPS origin, `SESSION_COOKIE_SAME_SITE=none`, and `SESSION_COOKIE_SECURE=true`. This permits credentialed cross-origin requests; browser privacy settings that block all third-party cookies remain incompatible with a separate-origin cookie session.
 

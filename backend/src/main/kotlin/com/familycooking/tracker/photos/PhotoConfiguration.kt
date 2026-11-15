@@ -17,6 +17,7 @@ class PhotoProperties {
     var dishBucket = "dish-photos"
     var recipeBucket = "recipe-photos"
     var avatarBucket = "avatars"
+    var heicPython = "python3"
 
     fun bucket(kind: PhotoKind) = when (kind) {
         PhotoKind.DISH -> dishBucket
@@ -39,6 +40,9 @@ class PhotoProperties {
 @EnableScheduling
 @EnableConfigurationProperties(PhotoProperties::class)
 class PhotoConfiguration {
+    @Bean
+    fun heicDecoder(properties: PhotoProperties) = HeicDecoder(properties.heicPython)
+
     @Bean
     fun objectStorage(properties: PhotoProperties, mapper: ObjectMapper): ObjectStorage =
         SupabaseObjectStorage(properties.supabaseUrl, properties.secretKey, mapper)

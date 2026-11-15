@@ -14,7 +14,7 @@ Proposed first-release limits:
 - Add meal/recipe photos from their saved detail views. Creation first saves the meal or recipe, then offers Add photo. Photo saving is an explicit, separate action from editing text, avoiding ambiguous partial saves.
 - Meal photos depict that cooking event. Recipe photos belong to the reusable recipe. Linking or recording a recipe does not copy photos, and meals without photos retain a placeholder rather than silently inheriting a changing recipe image.
 - Profile contains an optional display name and avatar. Email remains the login identifier and is read-only here; roles, account status, and password flows remain separate.
-- Initial uploads accept JPEG and PNG, at most 5 MiB (5,242,880 bytes) and 24 megapixels. Explain these limits before selection. HEIC, animated images, SVG, video, original-file downloads, and a crop editor are outside this milestone.
+- Initial uploads accept JPEG, PNG, and still HEIC/HEIF, at most 5 MiB (5,242,880 bytes) and 24 megapixels. HEIC support was added to 7.2 at the user's request: convert to JPEG on backend submission. Explain the limits before selection. Animated images/HEIF sequences, SVG, video, AVIF, original-file downloads, and a crop editor are outside this milestone.
 - Preserve in-memory drafts across view changes. Reload recovery, public profile pages, public sharing, favourites, reviews, and account deletion remain outside scope.
 
 ## Permission and privacy contract
@@ -101,15 +101,15 @@ Acceptance: legacy accounts still log in; a member edits only their own name; in
 
 ### 7.2 — Private image foundation
 
-Implemented: V9, disabled-by-default Storage configuration, the private Supabase HTTP adapter, bounded JPEG/PNG processing and metadata-free thumbnails, authenticated metadata/byte delivery, all three parents' backend mutations, and durable operation/cleanup recovery. **74 backend tests passed, zero skipped**, including real HTTP multipart limits, local adapter contract tests, and migration/lifecycle/permission checks. Frontend controls remain for 7.3–7.5. [7.2 handoff](milestone-7.2-handoff.md), [exact setup steps](photo-storage-setup.md). Live provider acceptance and browser/full frontend checks remain in 7.6.
+Implemented: V9, disabled-by-default Storage configuration, the private Supabase HTTP adapter, bounded JPEG/PNG/HEIC processing and metadata-free JPEG thumbnails, authenticated metadata/byte delivery, all three parents' backend mutations, and durable operation/cleanup recovery. **81 backend tests passed, zero skipped**, including real HTTP multipart limits, actual HEIC decoding, local adapter contract tests, and migration/lifecycle/permission checks. Three Linux codec tests and a packaged Docker JVM-to-decoder smoke check also passed. Frontend controls remain for 7.3–7.5. [7.2 handoff](milestone-7.2-handoff.md), [exact setup steps](photo-storage-setup.md). Live provider acceptance and browser/full frontend checks remain in 7.6.
 
 Deliver Storage configuration/adapter, metadata migrations, bounded image validation/processing, authenticated byte delivery, and durable operation/cleanup support. Add configuration examples and a deployment runbook with no real credentials. Keep feature controls hidden until their complete user flow is available.
 
-Acceptance: verify JPEG/PNG decoding, rotated images, metadata removal, limits, corrupt/spoofed inputs, unauthorized bytes, CSRF, Storage timeout/partial failure, safe retries, restart recovery, and cleanup that never removes referenced images. Contract tests verify the actual adapter's paths, credential headers, and error handling against a local HTTP stub. Backend tests do not require production credentials.
+Acceptance: verify JPEG/PNG/HEIC decoding, rotated images, metadata removal, limits, corrupt/spoofed inputs, unauthorized bytes, CSRF, Storage timeout/partial failure, safe retries, restart recovery, and cleanup that never removes referenced images. Exercise actual HEIC codec dependencies and Linux limits; bound native processing outside the JVM. Contract tests verify the actual adapter's paths, credential headers, and error handling against a local HTTP stub. Backend tests do not require production credentials.
 
 ### 7.3 — Meal photos
 
-Deliver add/preview/upload/replace/remove on saved meal detail, journal thumbnails, fallback states, and credentialed image loading. Keep photo and text saves visibly separate. Selection/preview stays local until Upload; Cancel performs no remote mutation.
+Deliver add/preview/upload/replace/remove on saved meal detail, journal thumbnails, fallback states, and credentialed image loading. Keep photo and text saves visibly separate. Selection/preview stays local until Upload; Cancel performs no remote mutation. Accept HEIC/HEIF selection with a filename/format fallback where the browser cannot preview it; the backend converts it on explicit Upload and returns JPEGs.
 
 Acceptance: creator/admin can manage photos; another member can view but cannot mutate through a direct request; failure retains selection and existing photo; concurrent replacement/removal cannot lose a newer image; navigating preserves the pending selection and unrelated drafts. Reload shows persisted images, and an unlinked meal supports the complete flow.
 
@@ -143,13 +143,14 @@ The repository now supports the Storage configuration below as of 7.2. **Prepare
 | --- | --- |
 | Supabase project/database | Reuse the existing project and JDBC/session-pooler setup. Flyway applies additive application migrations at deployment. |
 | Storage buckets | Create or verify private `dish-photos`, `recipe-photos`, and `avatars` buckets. Reuse the previously documented `dish-photos` name if already provisioned. |
-| Bucket restrictions | Allow stored `image/jpeg` derivatives only, with a 5 MiB per-object limit. Ensure the project's global limit permits that. Browser inputs can still be JPEG/PNG because the backend normalizes them before Storage upload. |
+| Bucket restrictions | Allow stored `image/jpeg` derivatives only, with a 5 MiB per-object limit. Ensure the project's global limit permits that. Browser inputs can be JPEG/PNG/HEIC because the backend normalizes them before Storage upload. |
 | Storage access | Keep anonymous/browser access denied; do not add permissive public or authenticated-user policies. Audit existing bucket policies if reusing a bucket. Backend access uses a server-only secret key. |
 | Render backend environment | Add `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `STORAGE_DISH_PHOTOS_BUCKET=dish-photos`, `STORAGE_RECIPE_PHOTOS_BUCKET=recipe-photos`, and `STORAGE_AVATARS_BUCKET=avatars`. |
 | Activation | Add `PHOTO_STORAGE_ENABLED` (default false). When enabled, validate required configuration and bucket privacy/restrictions before considering the photo feature ready. When disabled/unavailable, preserve text/profile-name workflows and display useful photo fallbacks. |
 | Upload limits | Configure Spring multipart maximum file size to 5 MiB and maximum request size to 6 MiB; validate decoded pixels and output sizes separately. |
 | Frontend | No Supabase key or new Supabase frontend environment variable. Keep the existing API origin and cookie/CORS configuration. |
 | Render services/disk | Reuse the existing backend. No persistent disk or additional service is needed; temporary processing files are disposable. |
+| HEIC runtime | Rebuild/redeploy the updated backend Docker image, which includes the decoder. Plain-JAR deployments need Python 3.12, the pinned photo-codec requirements, and `PHOTO_HEIC_PYTHON`; see the setup runbook. No Supabase change is needed for HEIC. |
 | Subscription | No planned mandatory upgrade. Backend thumbnails avoid hosted transformations; check actual storage/egress quotas and Render memory before release. |
 
 Prefer a dedicated current `sb_secret_...` key for the backend. Send this key through the documented `apikey` header, not as though it were a JWT; verify this with the live Storage adapter check in 7.6. Keep it in Render's backend environment and local ignored configuration only, never `VITE_*`, browser responses, Git, or copied logs. [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys), [Render environment variables](https://render.com/docs/configure-environment-variables).

@@ -15,9 +15,17 @@ RUN sed -i 's/\r$//' mvnw \
 COPY src src
 RUN ./mvnw --batch-mode package -DskipTests
 
-FROM eclipse-temurin:21-jre-jammy
+FROM eclipse-temurin:21-jre-noble
 
 WORKDIR /app
+
+COPY photo-codecs-requirements.txt /app/photo-codecs-requirements.txt
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 python3-venv \
+    && python3 -m venv /opt/photo-codecs \
+    && /opt/photo-codecs/bin/pip install --no-cache-dir --only-binary=:all: -r /app/photo-codecs-requirements.txt \
+    && rm -rf /var/lib/apt/lists/*
+ENV PHOTO_HEIC_PYTHON=/opt/photo-codecs/bin/python
 
 RUN groupadd --system spring && useradd --system --gid spring spring
 COPY --from=build --chown=spring:spring /workspace/target/family-cooking-api-0.0.1-SNAPSHOT.jar app.jar

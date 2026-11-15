@@ -18,6 +18,75 @@ class PhotoImageProcessorTest {
     private val processor = PhotoImageProcessor()
 
     @Test
+    fun `HEIC and HEIF submissions become JPEG derivatives without metadata`() {
+        val source = javaClass.getResourceAsStream("/photos/quadrants-1.heic")!!.use { it.readBytes() }
+        for (mime in listOf("image/heic", "image/heif")) {
+            val result = processor.process(ByteArrayInputStream(source), mime, false)
+            assertEquals(80, result.detail.width)
+            assertEquals(40, result.detail.height)
+            assertEquals(0xff.toByte(), result.detail.bytes[0])
+            assertEquals(0xd8.toByte(), result.detail.bytes[1])
+            assertNotNull(ImageIO.read(ByteArrayInputStream(result.thumbnail.bytes)))
+            assertFalse(String(result.detail.bytes, Charsets.ISO_8859_1).contains("PRIVATE HEIC METADATA"))
+        }
+        val genericHeifBrand = source.clone()
+        "mif1".toByteArray().copyInto(genericHeifBrand, 8)
+        val generic = processor.process(ByteArrayInputStream(genericHeifBrand), "image/heif", false)
+        assertEquals(80, generic.detail.width)
+        assertEquals(40, generic.detail.height)
+    }
+
+    @Test
+    fun `HEIC container rotation transparency tiling and avatar crop survive conversion`() {
+        fun convert(name: String, avatar: Boolean = false): ProcessedPhoto {
+            val bytes = javaClass.getResourceAsStream("/photos/$name.heic")!!.use { it.readBytes() }
+            return processor.process(ByteArrayInputStream(bytes), "image/heic", avatar)
+        }
+        val rotated = convert("quadrants-6")
+        assertEquals(40, rotated.detail.width)
+        assertEquals(80, rotated.detail.height)
+        val rotatedImage = ImageIO.read(ByteArrayInputStream(rotated.detail.bytes))
+        val topLeft = Color(rotatedImage.getRGB(5, 5))
+        assertTrue(topLeft.blue > 200 && topLeft.red < 40 && topLeft.green < 40)
+
+        val transparent = convert("transparent")
+        val white = ImageIO.read(ByteArrayInputStream(transparent.detail.bytes))
+        assertEquals(Color.WHITE.rgb, white.getRGB(5, 5))
+
+        val tiled = convert("tiled")
+        assertEquals(1600, tiled.detail.width)
+        assertEquals(800, tiled.detail.height)
+        assertEquals(320, tiled.thumbnail.width)
+        assertEquals(160, tiled.thumbnail.height)
+        val avatar = convert("tiled", true)
+        assertEquals(256, avatar.detail.width)
+        assertEquals(256, avatar.detail.height)
+        val smallAvatar = convert("quadrants-6", true)
+        assertEquals(40, smallAvatar.detail.width)
+        assertEquals(40, smallAvatar.detail.height)
+    }
+
+    @Test
+    fun `HEIC truncation pixel bombs sequences and MIME mismatches are rejected`() {
+        val source = javaClass.getResourceAsStream("/photos/quadrants-1.heic")!!.use { it.readBytes() }
+        val tooManyPixels = javaClass.getResourceAsStream("/photos/over-24mp.heic")!!.use { it.readBytes() }
+        val sequence = source.clone()
+        "msf1".toByteArray().copyInto(sequence, 8)
+        for ((bytes, mime, status) in listOf(
+            Triple(source.copyOf(100), "image/heic", 400),
+            Triple(tooManyPixels, "image/heic", 413),
+            Triple(sequence, "image/heic", 415),
+            Triple(source, "image/png", 415),
+            Triple(source, "image/heic-sequence", 415),
+        )) {
+            val error = assertThrows(PhotoException::class.java) {
+                processor.process(ByteArrayInputStream(bytes), mime, false)
+            }
+            assertEquals(status, error.status)
+        }
+    }
+
+    @Test
     fun `decoder concurrency is bounded and capacity is released after an invalid upload`() {
         val entered = CountDownLatch(1)
         val release = CountDownLatch(1)

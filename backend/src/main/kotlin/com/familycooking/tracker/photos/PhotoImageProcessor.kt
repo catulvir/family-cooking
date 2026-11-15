@@ -24,7 +24,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 @Component
-class PhotoImageProcessor {
+class PhotoImageProcessor(private val heicDecoder: HeicDecoder = HeicDecoder()) {
     // One decoder per JVM; reject excess work rather than queue large decoded images.
     private val processing = Semaphore(1)
 
@@ -34,8 +34,12 @@ class PhotoImageProcessor {
             val bytes = input.readNBytes(MAX_PHOTO_BYTES + 1)
             if (bytes.size > MAX_PHOTO_BYTES) oversizedPhoto()
             if (bytes.isEmpty()) invalidPhoto()
-            if (contentType !in listOf("image/jpeg", "image/png")) unsupportedPhoto()
+            if (contentType !in listOf("image/jpeg", "image/png", "image/heic", "image/heif")) unsupportedPhoto()
             val hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes))
+            if (contentType == "image/heic" || contentType == "image/heif") {
+                val decoded = heicDecoder.decode(bytes)
+                return derivatives(decoded, 1, avatar, hash)
+            }
             return MemoryCacheImageInputStream(ByteArrayInputStream(bytes)).use { stream ->
                 val readers = ImageIO.getImageReaders(stream)
                 if (!readers.hasNext()) unsupportedPhoto()
@@ -64,22 +68,11 @@ class PhotoImageProcessor {
                     val sampling = max(1, max(width, height) / 1600)
                     params.setSourceSubsampling(sampling, sampling, 0, 0)
                     val decoded = reader.read(0, params) ?: invalidPhoto()
-                    try {
-                        if (warned) invalidPhoto()
-                        val detail = render(decoded, orientation, if (avatar) 256 else 1600, avatar)
-                        try {
-                            val thumbnail = render(detail, 1, if (avatar) 256 else 320, false)
-                            try {
-                                ProcessedPhoto(encode(detail), encode(thumbnail), hash)
-                            } finally {
-                                thumbnail.flush()
-                            }
-                        } finally {
-                            detail.flush()
-                        }
-                    } finally {
+                    if (warned) {
                         decoded.flush()
+                        invalidPhoto()
                     }
+                    derivatives(decoded, orientation, avatar, hash)
                 } finally {
                     reader.dispose()
                 }
@@ -90,6 +83,24 @@ class PhotoImageProcessor {
             invalidPhoto()
         } finally {
             processing.release()
+        }
+    }
+
+    private fun derivatives(decoded: BufferedImage, orientation: Int, avatar: Boolean, hash: String): ProcessedPhoto {
+        try {
+            val detail = render(decoded, orientation, if (avatar) 256 else 1600, avatar)
+            try {
+                val thumbnail = render(detail, 1, if (avatar) 256 else 320, false)
+                try {
+                    return ProcessedPhoto(encode(detail), encode(thumbnail), hash)
+                } finally {
+                    thumbnail.flush()
+                }
+            } finally {
+                detail.flush()
+            }
+        } finally {
+            decoded.flush()
         }
     }
 

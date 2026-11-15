@@ -51,6 +51,7 @@ management:
 app:
   photos:
     enabled: ${PHOTO_STORAGE_ENABLED:false}
+    heic-python: ${PHOTO_HEIC_PYTHON:python3}
     supabase-url: ${SUPABASE_URL:}
     secret-key: ${SUPABASE_SECRET_KEY:}
     dish-bucket: ${STORAGE_DISH_PHOTOS_BUCKET:dish-photos}
