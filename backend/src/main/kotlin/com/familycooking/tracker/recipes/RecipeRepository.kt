@@ -20,10 +20,40 @@ class RecipeRepository(private val jdbc: JdbcTemplate) {
     ) }
 
     internal fun find(id: UUID) = jdbc.query("SELECT * FROM recipes WHERE id = ?", mapper, id).firstOrNull()
-    internal fun page(page: Int, size: Int) = jdbc.query(
-        "SELECT * FROM recipes ORDER BY LOWER(name), id LIMIT ? OFFSET ?", mapper, size, page.toLong() * size,
+    fun references(ids: Set<UUID>): List<RecipeReference> = if (ids.isEmpty()) emptyList() else jdbc.query(
+        "SELECT id, name FROM recipes WHERE id IN (${ids.joinToString(",") { "?" }})",
+        RowMapper { rs, _ -> RecipeReference(rs.getObject("id", UUID::class.java), rs.getString("name")) }, *ids.toTypedArray(),
     )
-    fun count(): Long = jdbc.queryForObject("SELECT count(*) FROM recipes", Long::class.java)!!
+    internal fun page(page: Int, size: Int, search: RecipeSearch): List<RecipeRecord> {
+        val (where, parameters) = predicate(search)
+        val order = when (search.sort) {
+            RecipeSort.NAME_ASC -> "lower(r.name) ASC, r.id ASC"
+            RecipeSort.NAME_DESC -> "lower(r.name) DESC, r.id ASC"
+            RecipeSort.NEWEST -> "r.created_at DESC, r.id ASC"
+        }
+        return jdbc.query("SELECT r.* FROM recipes r WHERE $where ORDER BY $order LIMIT ? OFFSET ?", mapper,
+            *(parameters + listOf(size, page.toLong() * size)).toTypedArray())
+    }
+    internal fun count(search: RecipeSearch): Long {
+        val (where, parameters) = predicate(search)
+        return jdbc.queryForObject("SELECT count(*) FROM recipes r WHERE $where", Long::class.java, *parameters.toTypedArray())!!
+    }
+    private fun predicate(search: RecipeSearch): Pair<String, List<Any>> {
+        val clauses = mutableListOf<String>()
+        val parameters = mutableListOf<Any>()
+        if (search.query.isNotEmpty()) {
+            // POSITION is a literal substring match: %, _, and backslash have no wildcard meaning.
+            clauses.add("position(lower(?) in lower(r.name)) > 0")
+            parameters.add(search.query)
+        }
+        search.tagsByGroup.values.forEach { ids ->
+            // One EXISTS per selected group implements OR within / AND between groups
+            // without multiplying recipe rows or inflating the matching count.
+            clauses.add("EXISTS (SELECT 1 FROM recipe_tag_assignments a WHERE a.recipe_id = r.id AND a.tag_id IN (${ids.joinToString(",") { "?" }}))")
+            parameters.addAll(ids)
+        }
+        return (if (clauses.isEmpty()) "TRUE" else clauses.joinToString(" AND ")) to parameters
+    }
     fun ingredients(id: UUID): List<IngredientInput> = jdbc.query(
         "SELECT name, quantity, unit FROM recipe_ingredients WHERE recipe_id = ? ORDER BY position",
         RowMapper { rs, _ -> IngredientInput(rs.getString("name"), rs.getString("quantity"), rs.getString("unit")) }, id,
@@ -49,6 +79,10 @@ class RecipeRepository(private val jdbc: JdbcTemplate) {
     }
 
     private fun replaceContent(id: UUID, input: RecipeInput) {
+        jdbc.update("DELETE FROM recipe_tag_assignments WHERE recipe_id = ?", id)
+        input.tagIds.distinct().forEach { tagId ->
+            jdbc.update("INSERT INTO recipe_tag_assignments (recipe_id, tag_id) VALUES (?, ?)", id, tagId)
+        }
         jdbc.update("DELETE FROM recipe_ingredients WHERE recipe_id = ?", id)
         jdbc.update("DELETE FROM recipe_steps WHERE recipe_id = ?", id)
         input.ingredients.forEachIndexed { position, item ->

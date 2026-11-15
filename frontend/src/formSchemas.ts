@@ -21,6 +21,7 @@ export const accountSchema = yup.object({
   role: yup.string<'ADMIN' | 'MEMBER'>().oneOf(['ADMIN', 'MEMBER']).required(),
 })
 export const mealSchema = yup.object({
+  recipeId: yup.string().nullable().optional(),
   name: yup.string().trim().required('Enter a meal name.'),
   preparedOn: yup
     .string()

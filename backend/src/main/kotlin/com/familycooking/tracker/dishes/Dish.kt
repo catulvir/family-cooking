@@ -27,4 +27,6 @@ class Dish(
     var createdAt: Instant = Instant.now(),
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = createdAt,
+    @Column(name = "recipe_id")
+    var recipeId: UUID? = null,
 )

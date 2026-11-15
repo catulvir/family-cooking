@@ -1,5 +1,14 @@
 const apiOrigin = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ?? ''
 
+export interface RecipeLink {
+  id: string
+  name: string
+}
+export interface CookRequest {
+  token: string
+  recipe: RecipeLink
+}
+
 export interface Dish {
   id: string
   name: string
@@ -10,6 +19,7 @@ export interface Dish {
   createdAt: string
   updatedAt: string
   canEdit: boolean
+  recipe?: RecipeLink | null
 }
 
 export interface DishInput {
@@ -17,6 +27,7 @@ export interface DishInput {
   preparedOn: string
   location: string | null
   notes: string | null
+  recipeId?: string | null
 }
 
 export class DishApiError extends Error {

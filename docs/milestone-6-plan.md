@@ -1,6 +1,6 @@
 # Milestone 6 — Recipe library and discovery
 
-Status: in progress. Slices 6.1–6.2 implemented locally on 2026-11-14; 6.3–6.6 remain. Recipe edit permissions and administrator-managed tags were confirmed during planning. Unimplemented details below remain proposed implementation defaults. [6.1 verification and limitations](reviews/milestone-6.1/README.md). [6.2 targeted verification and handoff](milestone-6.2-handoff.md).
+Status: complete locally on 2026-11-15. Slices 6.1–6.6 are implemented and verified within the [final handoff's stated scope and limits](milestone-6-handoff.md). Recipe edit permissions and administrator-managed tags were confirmed during planning. The contracts below record the accepted implementation. [6.1 verification](reviews/milestone-6.1/README.md), [6.2 handoff](milestone-6.2-handoff.md), [6.3 handoff](milestone-6.3-handoff.md), [6.4 handoff](milestone-6.4-handoff.md), [6.5 handoff](milestone-6.5-handoff.md).
 
 ## Outcome
 
@@ -56,7 +56,7 @@ Recipe ingredients are recipe-owned text rows. They do not establish a normalize
 - Sort options: **Name A–Z** (default), **Name Z–A**, **Newest added**. Name sorts use a case-insensitive database ordering plus an ID tie-breaker; newest uses creation time descending plus ID. Sorting is deterministic for an unchanged dataset, without claiming locale-specific dictionary ordering or snapshot consistency during concurrent edits.
 - Default page size: 20; API supports 1–100. Use a zero-based API page and one-based UI labels. Return total matching recipes and total pages; do not count a recipe twice when it matches multiple selected tags.
 - Search uses an explicit Search submission; tag changes and sort selection apply immediately. Search, filter, and sort changes reset to the first page. Removing a chip updates the results; Clear tags preserves the name query; Clear all resets query and tags while retaining sort.
-- Preserve query, selected tags, sort, page, and list return focus when opening details, editing, or visiting another main view. After mutations, refresh affected results; if the current page becomes invalid, move to the last valid page. For zero matches, show an empty state without a misleading “Page 1 of 0”.
+- Preserve query, selected tags, sort and page when opening details, editing, or visiting another main view. Per the 2026-11-15 preference update, do not autofocus headings, fields or return controls on arrival. After mutations, refresh affected results; if the current page becomes invalid, move to the last valid page. For zero matches, show an empty state without a misleading “Page 1 of 0”.
 - Ignore stale responses when requests overlap. Distinguish an empty library, no matches, loading, request failure with retry, and expired session. Do not label old results as matching new criteria after a failed request.
 
 ### Recording meals from recipes
@@ -68,7 +68,7 @@ Recipe ingredients are recipe-owned text rows. They do not establish a normalize
 - A linked meal stores a nullable recipe ID. Its detail offers a link to the current recipe. Recipe edits never rewrite the meal's saved name, date, location, or notes; the recipe link intentionally opens current content, not a historical snapshot.
 - Existing meals remain unlinked after migration. Creating a meal without a recipe continues to work. An omitted recipe field on an existing meal update preserves its current link; explicit null clears it. This prevents older clients from accidentally unlinking meals.
 - Reject a nonexistent recipe ID without changing the meal. Creating or editing a meal does not modify the recipe or copy recipe ingredients into dish ingredients.
-- Returning from a recipe opened through meal detail restores that meal detail. Saving a new meal opens its detail; cancelling an untouched recipe-started meal returns to its source recipe. Preserve the library's discovery state throughout.
+- Returning from a recipe opened through meal detail restores the originating meal, even after cancelling or saving a new cooking draft. Saving a new meal opens its detail; cancelling an untouched recipe-started meal returns to its source recipe. Preserve the library's discovery state throughout. [Post-review regression coverage and focus changes](milestone-6-review-fixes.md).
 
 ### Drafts, feedback, and concurrent editing
 
@@ -143,6 +143,12 @@ Acceptance:
 
 ### 6.3 — Managed tags and recipe classification
 
+Implemented: V6 adds an initially empty catalogue with fixed Meal type, Cuisine, and Style groups, a database uniqueness index for normalized names, and recipe/tag associations. Active members can list/select tags; only administrators can create/rename them. Tag IDs and groups remain stable. Recipe selections are deduplicated, limited to 30 IDs, validated before writes, and saved atomically under the recipe version check. Recipe summaries and details include current tag names.
+
+Manage tags is accessible from the library, detail, and administrator recipe editor. Recipe and tag drafts remain mounted across navigation; replacing a changed tag editor requires explicit discard. Selection errors, catalogue retry, duplicate-name feedback, submission locking, empty catalogues, refreshed labels, and focus return have targeted coverage.
+
+Verification: backend `verify` passed **32 tests, zero skipped**, including PostgreSQL concurrency, rollback, fresh schema, V4-to-V6 account/meal preservation, and V5-to-V6 recipe preservation. **50 targeted frontend tests**, changed-file lint/format checks, and the production build passed. The initial five tag UI scenarios failed before implementation; later focused tests reproduced focus-return and stale-label defects before their fixes. The initial backend red run was blocked by Docker availability, so it is not counted as behavioral TDD evidence. Browser smoke checks, the full frontend suite, and live frontend/backend workflows remain deferred to 6.6. [Detailed handoff](milestone-6.3-handoff.md).
+
 Deliver the tag catalogue, administrator create/rename view, recipe selection controls, and tag display on library rows and details.
 
 Acceptance:
@@ -153,6 +159,12 @@ Acceptance:
 - Unknown selections fail atomically; repeated selected IDs do not create duplicate associations. Tag-management navigation preserves recipe drafts.
 
 ### 6.4 — Search, filters, sorting, and pagination
+
+Implemented: server-side literal name search, OR-within/AND-between tag filtering, allowlisted name/newest sorts with ID tie-breakers, accurate counts, and pagination. Invalid queries and filter IDs are rejected; duplicate filter IDs do not duplicate results. The library adds explicit Search, immediate tag/sort controls, removable chips, Clear tags/Clear all, and a responsive inline filter disclosure with selected count and keyboard focus handling.
+
+Discovery state survives detail/edit and main-view navigation; request identity prevents old results and errors from replacing newer criteria. Mutations refresh matching results and recover invalid pages. Empty library, no matches, loading, failures, and expired sessions are distinct. Last-focused recipe rows are restored across main-view navigation when still present.
+
+Verification: four backend and nine initial frontend discovery cases failed before implementation; a later focus regression also failed before its fix. Backend `verify` passed **36 tests, zero skipped**; **48 targeted frontend tests**, changed-file lint/format checks, and production build passed. Browser smoke checks, the full frontend suite, and live frontend/backend workflows remain deferred to 6.6. No schema change. [Detailed handoff](milestone-6.4-handoff.md).
 
 Complete database-backed name search and grouped-tag filtering, result counts, sort controls, selected chips, pagination, and the responsive filter disclosure.
 
@@ -165,6 +177,8 @@ Acceptance:
 - On mobile, Filters exposes its expanded state and selected count; selected chips remain visible. Escape and focus return work if an overlay is used.
 
 ### 6.5 — Optional recipe links in the meal journal
+
+Implemented: V7 adds nullable indexed recipe linkage without changing legacy meal content. Paginated selection, recipe-started meals, protected create/edit drafts and current-recipe previews preserve independent meal fields and recipe-library state. Omitted update fields retain links; explicit null clears them. The initial backend/migration and frontend scenarios failed before implementation. Backend verification reached 41 passing tests; final frontend and browser verification is recorded under 6.6. [Detailed handoff](milestone-6.5-handoff.md).
 
 Add the nullable dish relationship, recipe picker, recipe-to-meal action, and navigation from linked meal detail. Keep recipe and meal permissions independent.
 
@@ -179,6 +193,8 @@ Acceptance:
 
 ### 6.6 — Integrated verification and handoff
 
+Completed on 2026-11-15: **44 backend tests (zero skipped), 128 frontend tests**, lint, formatting, production build and diff checks passed. Live packaged-app workflows passed against isolated PostgreSQL, including real conflicts and forbidden edits. **30 captures** cover 360/768/1280px and **six** cover actual 200% Chrome zoom. Final review fixed frontend JAR placement and public shell access while retaining API protection; three failing access regressions now pass. [Evidence, reproduction and coverage limits](milestone-6-handoff.md).
+
 - Run backend verification (`.\mvnw.cmd verify` in `backend/`) with PostgreSQL/Testcontainers available. Inspect skipped-test counts: skipped database suites do not establish persistence or migration correctness.
 - Run frontend tests, lint, formatting, and production build using the existing package scripts. Retain authentication, account, journal, draft, CSRF, focus, retry, and submission regressions.
 - Exercise the actual frontend against the backend/database: member creates a recipe, administrator edits/manages tags, another member searches and records a linked meal, and persisted content survives reload. Include a real version conflict and a forbidden edit.
@@ -192,4 +208,4 @@ Photos, avatars/profiles, favourites, curated Home/collections, normalized dish 
 
 Milestone 6 is complete when members can create, find, maintain, and cook from reusable recipes under the confirmed permission policy; administrator-managed tags and all discovery semantics work; old meal data and workflows remain intact; and integrated, migration, responsive, and keyboard checks are recorded with no blocking defects in scope.
 
-Next: **6.3 — Managed tags and recipe classification**. No commit, push, or deployment was performed as part of 6.2.
+Next: **milestone 7 — Photos and personal profiles**. No commit, push, or deployment was performed as part of 6.6.

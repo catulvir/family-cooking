@@ -106,40 +106,40 @@ it('only offers sign out to members and no protected navigation before password 
   expect(screen.queryByRole('button', { name: 'Account' })).not.toBeInTheDocument()
 })
 
-it('names every journal screen and restores focus through detail, edit, cancel and back', async () => {
+it('names journal screens without autofocus through detail, edit, cancel and back', async () => {
   render(<App />)
   await screen.findByRole('button', { name: 'Soup' })
   expect(screen.getByRole('region', { name: 'Meal journal' })).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Soup' }))
   expect(screen.getByRole('region', { name: 'Soup' })).toBeInTheDocument()
-  expect(screen.getByRole('heading', { name: 'Soup' })).toHaveFocus()
+  expect(screen.getByRole('heading', { name: 'Soup' })).not.toHaveFocus()
   fireEvent.click(screen.getByRole('button', { name: 'Edit meal' }))
   expect(screen.getByRole('region', { name: 'Edit meal' })).toBeInTheDocument()
-  expect(screen.getByRole('heading', { name: 'Edit meal' })).toHaveFocus()
+  expect(screen.getByRole('heading', { name: 'Edit meal' })).not.toHaveFocus()
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-  expect(screen.getByRole('button', { name: 'Edit meal' })).toHaveFocus()
+  expect(screen.getByRole('button', { name: 'Edit meal' })).not.toHaveFocus()
   fireEvent.click(screen.getByRole('button', { name: 'Back to meals' }))
-  expect(screen.getByRole('button', { name: 'Soup' })).toHaveFocus()
+  expect(screen.getByRole('button', { name: 'Soup' })).not.toHaveFocus()
   fireEvent.click(screen.getByRole('button', { name: 'Add meal' }))
   expect(screen.getByRole('region', { name: 'Record a meal' })).toBeInTheDocument()
-  expect(screen.getByRole('heading', { name: 'Record a meal' })).toHaveFocus()
+  expect(screen.getByRole('heading', { name: 'Record a meal' })).not.toHaveFocus()
   fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Draft' } })
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
   fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }))
-  expect(screen.getByRole('button', { name: 'Add meal' })).toHaveFocus()
+  expect(screen.getByRole('button', { name: 'Add meal' })).not.toHaveFocus()
 })
 
-it('focuses account and restored draft headings without losing entered values', async () => {
+it('opens accounts and restored drafts without autofocus or losing entered values', async () => {
   render(<App />)
   fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
   fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Draft' } })
   fireEvent.click(screen.getByRole('button', { name: 'Account' }))
   fireEvent.click(screen.getByRole('button', { name: 'Family accounts' }))
-  expect(screen.getByRole('heading', { name: 'Family accounts' })).toHaveFocus()
+  expect(screen.getByRole('heading', { name: 'Family accounts' })).not.toHaveFocus()
   expect(screen.getByRole('button', { name: 'Account' })).toHaveAttribute('aria-expanded', 'false')
   expect(screen.queryByRole('textbox', { name: 'Meal name' })).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Journal' }))
-  expect(screen.getByRole('heading', { name: 'Record a meal' })).toHaveFocus()
+  expect(screen.getByRole('heading', { name: 'Record a meal' })).not.toHaveFocus()
   expect(screen.getByLabelText('Meal name')).toHaveValue('Draft')
 })
 
@@ -157,7 +157,7 @@ it('announces meal loading and completion without moving focus on background loa
   fireEvent.click(screen.getByRole('button', { name: 'Add meal' }))
   fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Soup' } })
   fireEvent.click(screen.getByRole('button', { name: 'Save meal' }))
-  expect(await screen.findByRole('heading', { name: 'Soup' })).toHaveFocus()
+  expect(await screen.findByRole('heading', { name: 'Soup' })).not.toHaveFocus()
   expect(screen.getByRole('status')).toHaveTextContent('Meal saved.')
 })
 
@@ -182,7 +182,7 @@ it.each(['success', 'validation failure'])(
     fireEvent.click(screen.getByRole('button', { name: 'Journal' }))
     expect(
       screen.getByRole('heading', { name: outcome === 'success' ? 'Soup' : 'Record a meal' }),
-    ).toHaveFocus()
+    ).not.toHaveFocus()
     expect(screen.queryByRole('alert')?.textContent).toBe(
       outcome === 'success' ? undefined : 'Please correct the meal.',
     )
@@ -234,7 +234,7 @@ it.each(['network', 'server'] as const)(
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(screen.getByRole('status')).toHaveTextContent('Checking your session')
     await act(async () => retry.resolve(new Response(JSON.stringify(admin))))
-    expect(await screen.findByRole('heading', { name: 'Meal journal' })).toHaveFocus()
+    expect(await screen.findByRole('heading', { name: 'Meal journal' })).not.toHaveFocus()
     expect(fetch).toHaveBeenCalledTimes(2)
   },
 )

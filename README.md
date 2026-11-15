@@ -4,7 +4,11 @@ Private, family-only web application for recording family meals and maintaining 
 
 ## Current milestone
 
-Milestone 5 is complete, including final verification and handoff for the redesigned private family cooking journal:
+Latest review follow-up: linked recipes preserve their originating meal after cancelling or saving a cooking draft, and views no longer autofocus on arrival. [Changes and targeted verification](docs/milestone-6-review-fixes.md).
+
+**Milestone 6 is complete locally** as of 2026-11-15: shared recipes, ordered ingredients/instructions, protected editing and drafts, administrator-managed tags, search/filter/sort/pagination, and optional meal-to-recipe links. Final verification passed **44 backend tests (zero skipped), 128 frontend tests**, lint, formatting and production build. Live packaged-app workflows and 36 Chrome captures covered three widths and actual 200% zoom. See the [final handoff and coverage limits](docs/milestone-6-handoff.md) and [completed plan](docs/milestone-6-plan.md). Next: **milestone 7 — Photos and personal profiles**.
+
+Milestone 5 established the redesigned private family cooking journal:
 
 - Record a meal with its name, date, optional location, and optional notes.
 - Browse the shared family journal, ordered by preparation date and then entry time.
@@ -17,9 +21,15 @@ Milestone 5 verification passed: 53 frontend tests, lint, formatting, and produc
 
 Milestone **6.1 is implemented**: active members can create and browse reusable recipes with ordered ingredients/instructions, optional servings/notes, and basic pagination. Creators and administrators can edit, with version conflicts preventing silent overwrites. Its verification passed 25 backend tests (zero skipped), 63 frontend tests, lint, formatting, and production build; a headless Chrome smoke review covered three widths. See the [6.1 verification limits](docs/reviews/milestone-6.1/README.md).
 
-Milestone **6.2 is implemented**: ingredient and instruction rows can be added, removed, and reordered with stable field identity and deliberate focus. Nested errors follow their rows; empty lists have actionable validation. Conflict reloads require confirmation for changed drafts and preserve input on failure. Targeted verification passed 34 recipe/schema/form tests and nine selected shared-form regressions, plus changed-file lint/format checks and build. Full frontend and browser checks are deferred to 6.6 per [project instructions](AGENTS.md). See the [6.2 handoff](docs/milestone-6.2-handoff.md) and [milestone 6 plan](docs/milestone-6-plan.md). Next is 6.3, administrator-managed tags.
+Milestone **6.2 is implemented**: ingredient and instruction rows can be added, removed, and reordered with stable field identity and deliberate focus. Nested errors follow their rows; empty lists have actionable validation. Conflict reloads require confirmation for changed drafts and preserve input on failure. Targeted verification passed 34 recipe/schema/form tests and nine selected shared-form regressions, plus changed-file lint/format checks and build. See the [6.2 handoff](docs/milestone-6.2-handoff.md).
 
-There is deliberately no email delivery, invitation token, password-reset, MFA, direct browser connection to Supabase, dish/recipe deletion, tags/search, recipe-to-meal links, reviews, ratings, normalized dish ingredients, or photos yet.
+Milestone **6.3 is implemented**: administrators create and rename grouped tags; members select them in recipes and see them in the library and detail. Normalized duplicate names are rejected, recipe/tag associations save atomically, and navigation preserves both drafts. Verification passed 32 backend tests (zero skipped), 50 targeted frontend tests, changed-file lint/format checks, and production build. See the [6.3 handoff](docs/milestone-6.3-handoff.md).
+
+Milestone **6.4 is implemented**: recipe discovery includes literal name search, grouped tag filters, sorting, accurate counts, and pagination. Discovery state survives navigation without automatic focus; stale responses cannot replace current results. Its targeted verification passed 36 backend tests (zero skipped), 48 frontend tests, changed-file lint/format checks, and production build. The full frontend and browser checks deferred from this slice were completed in 6.6. See the [6.4 handoff](docs/milestone-6.4-handoff.md).
+
+Milestone **6.5 is implemented**: meals can select, replace or clear a recipe link; Record cooking starts a separate unsaved meal. Existing drafts are protected, and links open current recipe content without rewriting saved meal fields. See the [6.5 handoff](docs/milestone-6.5-handoff.md).
+
+There is deliberately no email delivery, invitation token, password-reset, MFA, direct browser connection to Supabase, dish/recipe deletion, reviews, ratings, normalized dish ingredients, or photos yet.
 
 ## Architecture
 
@@ -34,7 +44,7 @@ The repository is a modular monolith:
 
 The backend uses Flyway as the schema authority. Hibernate validates the database schema and does not create or modify it. The account foundation uses UUID identifiers, normalized unique email lookup, `ADMIN`/`MEMBER` roles, and `PENDING`/`ACTIVE`/`DISABLED` statuses. The credential migration only adds `password_hash` and `must_change_password` columns; it does not delete or rewrite existing data.
 
-Recipes currently remain independent from dishes and reviews. Recipe persistence uses transactional JDBC with a version-checked aggregate update; existing account and dish persistence uses JPA. A dish currently records its creator, name, meal date, optional location, and optional notes. Milestone 6.5 will add a nullable `recipe_id`; later dish ingredients will refer directly to dishes, and optional reviews will have their own authorization-protected endpoints and will not appear in ordinary dish responses.
+Recipe persistence uses transactional JDBC with a version-checked aggregate update; account and dish persistence uses JPA. A dish records its creator, name, meal date, optional location/notes and a nullable `recipe_id`. Recipe edits do not rewrite meal fields or copy ingredients into meals. Later dish ingredients will refer directly to dishes, and optional reviews will have their own authorization-protected endpoints and will not appear in ordinary dish responses.
 
 ## Prerequisites
 
@@ -159,7 +169,7 @@ Milestones 1–3 provide the implemented foundation, private access, and cooking
 
 4. **UI design agreement** — accepted direction for screen layouts, visual system, navigation, responsive behaviour, and acceptance scenarios. [Design reference and TDD handoff](docs/milestone-4-ui-design.md).
 5. **App shell and journal redesign** — complete: consolidated styling, botanical decoration, draft preservation, shared Formik/Yup forms, accessible navigation/focus/feedback, responsive browser review, and final verification. [Handoff](docs/milestone-5-handoff.md).
-6. **Recipe library and discovery** — in progress: 6.1–6.2 deliver reusable recipes, ordered ingredients/instructions, creator/admin editing, basic pagination, row editing, and protected drafts/conflict recovery. Administrator-managed tags, discovery controls, and optional meal links follow. [Behaviour contract and ordered implementation slices](docs/milestone-6-plan.md).
+6. **Recipe library and discovery** — complete locally: reusable recipes, ordered ingredients/instructions, creator/admin editing, protected drafts/conflict recovery, administrator-managed tags, search/filter/sort/pagination and optional meal links. [Final verification and limits](docs/milestone-6-handoff.md).
 7. **Photos and personal profiles** — protected photos in private object storage, thumbnails, display names, and avatars.
 8. **Favourites and seasonal home** — personal favourites, shared curated collections, and recently cooked dishes.
 9. **Ingredient-aware discovery** — normalized dish ingredients and any/all/exclude ingredient search, independently editable from recipes.

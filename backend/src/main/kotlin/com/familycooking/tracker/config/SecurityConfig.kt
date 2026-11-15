@@ -24,7 +24,8 @@ class SecurityConfig(private val accountStatusFilter: com.familycooking.tracker.
             .cors { }
             .securityContext { it.securityContextRepository(securityContextRepository()) }
             .authorizeHttpRequests {
-                it.requestMatchers("/actuator/health", "/api/v1/health").permitAll()
+                it.requestMatchers(frontendRequests).permitAll()
+                    .requestMatchers("/actuator/health", "/api/v1/health").permitAll()
                     .requestMatchers("/api/v1/auth/csrf", "/api/v1/auth/login").permitAll()
                     .anyRequest().authenticated()
             }
