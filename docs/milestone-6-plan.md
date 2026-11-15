@@ -56,7 +56,7 @@ Recipe ingredients are recipe-owned text rows. They do not establish a normalize
 - Sort options: **Name A–Z** (default), **Name Z–A**, **Newest added**. Name sorts use a case-insensitive database ordering plus an ID tie-breaker; newest uses creation time descending plus ID. Sorting is deterministic for an unchanged dataset, without claiming locale-specific dictionary ordering or snapshot consistency during concurrent edits.
 - Default page size: 20; API supports 1–100. Use a zero-based API page and one-based UI labels. Return total matching recipes and total pages; do not count a recipe twice when it matches multiple selected tags.
 - Search uses an explicit Search submission; tag changes and sort selection apply immediately. Search, filter, and sort changes reset to the first page. Removing a chip updates the results; Clear tags preserves the name query; Clear all resets query and tags while retaining sort.
-- Preserve query, selected tags, sort, page, and list return focus when opening details, editing, or visiting another main view. After mutations, refresh affected results; if the current page becomes invalid, move to the last valid page. For zero matches, show an empty state without a misleading “Page 1 of 0”.
+- Preserve query, selected tags, sort and page when opening details, editing, or visiting another main view. Per the 2026-11-15 preference update, do not autofocus headings, fields or return controls on arrival. After mutations, refresh affected results; if the current page becomes invalid, move to the last valid page. For zero matches, show an empty state without a misleading “Page 1 of 0”.
 - Ignore stale responses when requests overlap. Distinguish an empty library, no matches, loading, request failure with retry, and expired session. Do not label old results as matching new criteria after a failed request.
 
 ### Recording meals from recipes
@@ -68,7 +68,7 @@ Recipe ingredients are recipe-owned text rows. They do not establish a normalize
 - A linked meal stores a nullable recipe ID. Its detail offers a link to the current recipe. Recipe edits never rewrite the meal's saved name, date, location, or notes; the recipe link intentionally opens current content, not a historical snapshot.
 - Existing meals remain unlinked after migration. Creating a meal without a recipe continues to work. An omitted recipe field on an existing meal update preserves its current link; explicit null clears it. This prevents older clients from accidentally unlinking meals.
 - Reject a nonexistent recipe ID without changing the meal. Creating or editing a meal does not modify the recipe or copy recipe ingredients into dish ingredients.
-- Returning from a recipe opened through meal detail restores that meal detail. Saving a new meal opens its detail; cancelling an untouched recipe-started meal returns to its source recipe. Preserve the library's discovery state throughout.
+- Returning from a recipe opened through meal detail restores the originating meal, even after cancelling or saving a new cooking draft. Saving a new meal opens its detail; cancelling an untouched recipe-started meal returns to its source recipe. Preserve the library's discovery state throughout. [Post-review regression coverage and focus changes](milestone-6-review-fixes.md).
 
 ### Drafts, feedback, and concurrent editing
 

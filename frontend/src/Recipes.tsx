@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { recipesApi, type Recipe, type RecipeTag } from './api/recipes'
 import type { RecipeLink } from './api/dishes'
 import RecipeForm from './RecipeForm'
@@ -35,9 +35,6 @@ export default function Recipes({
   const discovery = useRecipeDiscovery()
   const [detailError, setDetailError] = useState('')
   const [notice, setNotice] = useState('')
-  const region = useRef<HTMLElement>(null)
-  const returnTarget = useRef<string | null>(null)
-  const libraryFocus = useRef<string | null>(null)
 
   useEffect(() => {
     if (view.kind !== 'detail' || view.recipe) return
@@ -58,34 +55,17 @@ export default function Recipes({
     }
   }, [view])
 
-  useLayoutEffect(() => {
-    if (!active || managingTags) return
-    const targetKey = returnTarget.current ?? (view.kind === 'list' ? libraryFocus.current : null)
-    const target = targetKey
-      ? region.current?.querySelector<HTMLElement>(`[data-return="${targetKey}"]`)
-      : null
-    ;(target ?? region.current?.querySelector<HTMLElement>(`#recipes-${view.kind}-title`))?.focus()
-    if (target || view.kind !== 'detail' || view.recipe) returnTarget.current = null
-  }, [active, view, managingTags])
-
   const open = (id: string) => {
     tagState.retry()
     setNotice('')
     setDetailError('')
     setView({ kind: 'detail', id })
   }
-  const back = (id: string) => {
-    returnTarget.current = id
+  const back = () => {
     setNotice('')
     setView({ kind: 'list' })
   }
   const reloadList = discovery.reload
-  const changePage = (next: number) => {
-    // Move focus to a stable anchor before the paging controls unmount. Loading
-    // and request completion can then leave focus alone, even after navigation.
-    region.current?.querySelector<HTMLElement>('#recipes-list-title')?.focus()
-    discovery.changePage(next)
-  }
   const saved = (recipe: Recipe) => {
     setNotice('Recipe saved.')
     setDetailError('')
@@ -113,17 +93,7 @@ export default function Recipes({
   return (
     <>
       <div hidden={managingTags}>
-        <section
-          ref={region}
-          className="journal"
-          aria-labelledby={`recipes-${view.kind}-title`}
-          onFocusCapture={(event) => {
-            if (view.kind === 'list') {
-              const target = event.target.closest<HTMLElement>('[data-return]')
-              if (target?.dataset.return) libraryFocus.current = target.dataset.return
-            }
-          }}
-        >
+        <section className="journal" aria-labelledby={`recipes-${view.kind}-title`}>
           {isAdmin && view.kind !== 'form' && (
             <button className="secondary" data-return="manage-tags" onClick={manageTags}>
               Manage tags
@@ -141,7 +111,7 @@ export default function Recipes({
               }}
               onRetry={reloadList}
               onOpen={open}
-              onPageChange={changePage}
+              onPageChange={discovery.changePage}
             />
           )}
           {view.kind === 'detail' && (
@@ -149,7 +119,7 @@ export default function Recipes({
               onRecord={onRecord}
               recipe={view.recipe}
               error={detailError}
-              onBack={() => back(view.id)}
+              onBack={back}
               onRetry={() => {
                 setDetailError('')
                 setView({ kind: 'detail', id: view.id })
@@ -174,7 +144,6 @@ export default function Recipes({
                 reloadList()
               }}
               onCancel={() => {
-                returnTarget.current = view.recipe ? 'edit' : 'new'
                 // Fetch again after leaving an editor, so a conflicting draft can be discarded
                 // and reopened against the latest server version.
                 if (view.recipe) open(view.recipe.id)
@@ -191,7 +160,6 @@ export default function Recipes({
             state={tagState}
             onSaved={tagSaved}
             onBack={() => {
-              returnTarget.current = 'manage-tags'
               setManagingTags(false)
             }}
           />

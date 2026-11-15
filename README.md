@@ -4,6 +4,8 @@ Private, family-only web application for recording family meals and maintaining 
 
 ## Current milestone
 
+Latest review follow-up: linked recipes preserve their originating meal after cancelling or saving a cooking draft, and views no longer autofocus on arrival. [Changes and targeted verification](docs/milestone-6-review-fixes.md).
+
 **Milestone 6 is complete locally** as of 2026-11-15: shared recipes, ordered ingredients/instructions, protected editing and drafts, administrator-managed tags, search/filter/sort/pagination, and optional meal-to-recipe links. Final verification passed **44 backend tests (zero skipped), 128 frontend tests**, lint, formatting and production build. Live packaged-app workflows and 36 Chrome captures covered three widths and actual 200% zoom. See the [final handoff and coverage limits](docs/milestone-6-handoff.md) and [completed plan](docs/milestone-6-plan.md). Next: **milestone 7 — Photos and personal profiles**.
 
 Milestone 5 established the redesigned private family cooking journal:
@@ -23,7 +25,7 @@ Milestone **6.2 is implemented**: ingredient and instruction rows can be added, 
 
 Milestone **6.3 is implemented**: administrators create and rename grouped tags; members select them in recipes and see them in the library and detail. Normalized duplicate names are rejected, recipe/tag associations save atomically, and navigation preserves both drafts. Verification passed 32 backend tests (zero skipped), 50 targeted frontend tests, changed-file lint/format checks, and production build. See the [6.3 handoff](docs/milestone-6.3-handoff.md).
 
-Milestone **6.4 is implemented**: recipe discovery includes literal name search, grouped tag filters, sorting, accurate counts, and pagination. Discovery state and return focus survive navigation; stale responses cannot replace current results. Its targeted verification passed 36 backend tests (zero skipped), 48 frontend tests, changed-file lint/format checks, and production build. The full frontend and browser checks deferred from this slice were completed in 6.6. See the [6.4 handoff](docs/milestone-6.4-handoff.md).
+Milestone **6.4 is implemented**: recipe discovery includes literal name search, grouped tag filters, sorting, accurate counts, and pagination. Discovery state survives navigation without automatic focus; stale responses cannot replace current results. Its targeted verification passed 36 backend tests (zero skipped), 48 frontend tests, changed-file lint/format checks, and production build. The full frontend and browser checks deferred from this slice were completed in 6.6. See the [6.4 handoff](docs/milestone-6.4-handoff.md).
 
 Milestone **6.5 is implemented**: meals can select, replace or clear a recipe link; Record cooking starts a separate unsaved meal. Existing drafts are protected, and links open current recipe content without rewriting saved meal fields. See the [6.5 handoff](docs/milestone-6.5-handoff.md).
 

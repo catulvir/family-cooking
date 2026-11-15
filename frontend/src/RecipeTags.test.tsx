@@ -142,7 +142,7 @@ it('tag management and main navigation preserve both drafts and refresh selected
   expect(screen.getByLabelText('Tag name')).toHaveValue('Evening meal')
   fireEvent.click(screen.getByRole('button', { name: 'Back to recipe' }))
   expect(screen.getByLabelText('Recipe name')).toHaveValue('Draft soup')
-  expect(screen.getByRole('button', { name: 'Manage tags' })).toHaveFocus()
+  expect(screen.getByRole('button', { name: 'Manage tags' })).not.toHaveFocus()
   fireEvent.click(screen.getByRole('button', { name: 'Manage tags' }))
   expect(screen.getByLabelText('Tag name')).toHaveValue('Evening meal')
   fireEvent.click(screen.getByRole('button', { name: 'Save tag' }))
@@ -173,7 +173,7 @@ it('duplicate failures preserve tag draft focus and allow a single retry while s
   const journalHeading = screen.getByRole('heading', { name: 'Meal journal' })
   pending!()
   await waitFor(() => expect(tags.some((tag) => tag.name === 'Breakfast')).toBe(true))
-  expect(journalHeading).toHaveFocus()
+  expect(journalHeading).not.toHaveFocus()
   fireEvent.click(screen.getByRole('button', { name: 'Recipes' }))
   expect(screen.getByText('Tag saved.')).toBeVisible()
 })
@@ -287,11 +287,13 @@ it('rename refreshes labels on the detail and library without changing recipe ve
   expect(writes).toHaveLength(1)
 })
 
-it('reselecting Recipes focuses the visible tag management heading', async () => {
+it('reselecting Recipes does not autofocus the tag management heading', async () => {
   await manage()
+  expect(screen.getByRole('heading', { name: 'Manage tags' })).not.toHaveFocus()
   screen.getByRole('button', { name: 'Recipes' }).focus()
   fireEvent.click(screen.getByRole('button', { name: 'Recipes' }))
-  expect(screen.getByRole('heading', { name: 'Manage tags' })).toHaveFocus()
+  expect(screen.getByRole('heading', { name: 'Manage tags' })).not.toHaveFocus()
+  expect(screen.getByRole('button', { name: 'Recipes' })).toHaveFocus()
 })
 
 it('fresh recipe responses display names renamed by another administrator', async () => {

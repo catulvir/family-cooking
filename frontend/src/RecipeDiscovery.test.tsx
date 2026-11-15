@@ -169,7 +169,7 @@ it('keeps chips visible when filters collapse and clear actions preserve the int
   expect(screen.getByLabelText('Search recipes by name')).toHaveValue('')
 })
 
-it('preserves discovery state and list return focus through detail editing and main navigation', async () => {
+it('preserves discovery state without autofocus through detail editing and main navigation', async () => {
   await library()
   search('Soup')
   await filters()
@@ -189,7 +189,7 @@ it('preserves discovery state and list return focus through detail editing and m
   expect(screen.getByLabelText('Sort recipes')).toHaveValue('name_desc')
   expect(screen.getByRole('checkbox', { name: 'Breakfast' })).toBeChecked()
   expect(screen.getByText('Page 2 of 2')).toBeVisible()
-  expect(screen.getByRole('button', { name: 'Soup 00' })).toHaveFocus()
+  expect(screen.getByRole('button', { name: 'Soup 00' })).not.toHaveFocus()
 })
 
 it.each([200, 503])(
@@ -282,13 +282,16 @@ it('keeps unsubmitted search text separate from active criteria and preserves it
   expect(screen.getByText('Search: “Soup”')).toBeVisible()
 })
 
-it('restores the focused library recipe after switching main views', async () => {
+it('preserves the library without autofocus after switching main views', async () => {
   await library()
   const row = await screen.findByRole('button', { name: 'Soup 05' })
   row.focus()
   fireEvent.click(screen.getByRole('button', { name: 'Journal' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Recipes' }))
-  expect(screen.getByRole('button', { name: 'Soup 05' })).toHaveFocus()
+  const navigation = screen.getByRole('button', { name: 'Recipes' })
+  navigation.focus()
+  fireEvent.click(navigation)
+  expect(navigation).toHaveFocus()
+  expect(row).toBeVisible()
 })
 
 it('limits filter selection to thirty and Escape collapses the inline panel with focus return', async () => {

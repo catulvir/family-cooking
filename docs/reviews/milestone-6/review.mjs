@@ -206,7 +206,7 @@ try {
   await capture(b, '1280-linked-meal')
   await key(b, `View recipe: ${name}`)
   await key(b, 'Back to meal')
-  assert(await b.getByRole('button', { name: `View recipe: ${name}` }).evaluate(el => el === document.activeElement))
+  assert(await b.getByRole('button', { name: `View recipe: ${name}` }).evaluate(el => el !== document.activeElement))
   // Replace a changed meal draft only after an explicit choice and confirmation.
   await key(b, 'Edit meal')
   await b.getByLabel('Notes (optional)', { exact: true }).fill('Unsaved meal notes')
@@ -261,7 +261,7 @@ try {
     await capture(p, `${width}-populated-paging`)
     await key(p, 'Next')
     await p.getByText('Page 2 of 2', { exact: true }).waitFor()
-    assert(await p.getByRole('heading', { name: 'Recipes', exact: true }).evaluate(el => el === document.activeElement))
+    assert(await p.getByRole('heading', { name: 'Recipes', exact: true }).evaluate(el => el !== document.activeElement))
     await capture(p, `${width}-second-page`)
     await key(p, 'Filters (0)')
     await p.getByLabel(renamed, { exact: true }).check()

@@ -96,9 +96,10 @@ beforeEach(() => {
         const saved = {
           ...baseMeal,
           ...body,
+          id: init.method === 'POST' ? 'new-meal' : path.split('/').at(-1)!,
           recipe: linked ? { id: linked.id, name: linked.name } : null,
         }
-        meals = [saved]
+        meals = [...meals.filter((meal) => meal.id !== saved.id), saved]
         return respond(saved, init.method === 'POST' ? 201 : 200)
       }
       if (path === '/api/v1/dishes') return respond(meals)
@@ -108,6 +109,99 @@ beforeEach(() => {
   )
 })
 afterEach(() => vi.unstubAllGlobals())
+
+it('preserves an unfinished cooking draft when its originating meal is requested', async () => {
+  meals = [{ ...baseMeal }]
+  render(<App />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Sunday lunch' }))
+  fireEvent.click(screen.getByRole('button', { name: 'View recipe: Family soup' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Record cooking this recipe' }))
+  fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Unfinished supper' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Recipes' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Back to meal' }))
+  expect(screen.getByLabelText('Meal name')).toHaveValue('Unfinished supper')
+  expect(
+    screen.getByText('Save or cancel your current meal draft to return to Sunday lunch.'),
+  ).toBeVisible()
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }))
+  expect(screen.getByLabelText('Meal name')).toHaveValue('Unfinished supper')
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }))
+  expect(screen.getByRole('heading', { name: 'Sunday lunch' })).toBeVisible()
+  expect(writes).toHaveLength(0)
+})
+
+it('does not autofocus an open picker or discard prompt when returning to a draft', async () => {
+  render(<App />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Choose recipe' }))
+  expect(await screen.findByLabelText('Find a recipe')).toHaveFocus()
+  const navigation = screen.getByRole('button', { name: 'Journal' })
+  fireEvent.click(screen.getByRole('button', { name: 'Recipes' }))
+  navigation.focus()
+  fireEvent.click(navigation)
+  expect(navigation).toHaveFocus()
+  fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'Draft' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+  expect(screen.getByRole('button', { name: 'Keep editing' })).toHaveFocus()
+  fireEvent.click(screen.getByRole('button', { name: 'Recipes' }))
+  navigation.focus()
+  fireEvent.click(navigation)
+  expect(navigation).toHaveFocus()
+})
+
+it.each(['cancel', 'save'])(
+  'returns to the originating meal after %s of a draft started from its linked recipe',
+  async (action) => {
+    meals = [{ ...baseMeal }]
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Sunday lunch' }))
+    fireEvent.click(screen.getByRole('button', { name: 'View recipe: Family soup' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Record cooking this recipe' }))
+    if (action === 'save') {
+      fireEvent.change(screen.getByLabelText('Meal name'), { target: { value: 'New supper' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Save meal' }))
+      await screen.findByRole('heading', { name: 'New supper' })
+      fireEvent.click(screen.getByRole('button', { name: 'Recipes' }))
+    } else fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Back to meal' }))
+    expect(await screen.findByRole('heading', { name: 'Sunday lunch' })).toBeVisible()
+    expect(screen.getByText('Meal notes')).toBeVisible()
+    expect(screen.getByText('Home')).toBeVisible()
+    expect(screen.queryByRole('heading', { name: 'New supper' })).not.toBeInTheDocument()
+    expect(writes).toHaveLength(action === 'save' ? 1 : 0)
+    expect(meals.find((meal) => meal.id === 'm1')).toEqual(baseMeal)
+    fireEvent.click(screen.getByRole('button', { name: 'Back to meals' }))
+    expect(screen.getByRole('button', { name: 'Sunday lunch' })).toBeVisible()
+    expect(screen.queryAllByRole('button', { name: 'New supper' })).toHaveLength(
+      action === 'save' ? 1 : 0,
+    )
+  },
+)
+
+it('does not autofocus recipe, linked recipe, or cooking views on arrival', async () => {
+  meals = [{ ...baseMeal }]
+  render(<App />)
+  await screen.findByRole('button', { name: 'Sunday lunch' })
+  const focus = vi.spyOn(HTMLElement.prototype, 'focus')
+  try {
+    await openRecipe()
+    fireEvent.click(screen.getByRole('button', { name: 'Back to recipes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'New recipe' }))
+    await screen.findByLabelText('Recipe name')
+    fireEvent.click(screen.getByRole('button', { name: 'Journal' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sunday lunch' }))
+    fireEvent.click(screen.getByRole('button', { name: 'View recipe: Family soup' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Record cooking this recipe' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Back to meal' }))
+    expect(focus).not.toHaveBeenCalled()
+  } finally {
+    focus.mockRestore()
+  }
+})
+
 async function openRecipe() {
   fireEvent.click(await screen.findByRole('button', { name: 'Recipes' }))
   fireEvent.click(await screen.findByRole('button', { name: 'Family soup' }))
@@ -201,7 +295,7 @@ it('does not replace a meal while its save is pending, including a hidden comple
   fireEvent.click(screen.getByRole('button', { name: 'Recipes' }))
   const heading = screen.getByRole('heading', { name: 'Family soup' })
   await act(async () => pendingSave!())
-  expect(heading).toHaveFocus()
+  expect(heading).not.toHaveFocus()
   fireEvent.click(screen.getByRole('button', { name: 'Journal' }))
   expect(screen.getByRole('heading', { name: 'Pending meal' })).toBeVisible()
   expect(screen.queryByLabelText('Meal name')).not.toBeInTheDocument()

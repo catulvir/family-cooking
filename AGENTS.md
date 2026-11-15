@@ -13,3 +13,8 @@
 - Record verification actually performed and any checks deferred to the final milestone step. Do not describe deferred checks as passed.
 
 This project-wide rule applies to all milestones. For milestone 6, the final verification step is 6.6.
+
+## Navigation focus
+
+- Do not automatically move focus to a heading, field, or return control when opening or returning to a view. Do not simulate this behavior with a focus highlight on arrival.
+- Keep visible keyboard focus and deliberate focus handling for actions within the current view, such as validation errors, row editing, and discard confirmations.

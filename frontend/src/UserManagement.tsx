@@ -1,17 +1,11 @@
-import { useEffect, useState, type Ref } from 'react'
+import { useEffect, useState } from 'react'
 import { FormikProvider, useFormik } from 'formik'
 import { authApi, type CreatedUser, type ManagedUser } from './api/auth'
 import { AppForm, FormField } from './forms'
 import { accountSchema } from './formSchemas'
 import { messageFrom } from './errors'
 
-export default function UserManagement({
-  headingRef,
-  setError,
-}: {
-  headingRef: Ref<HTMLHeadingElement>
-  setError: (message: string) => void
-}) {
+export default function UserManagement({ setError }: { setError: (message: string) => void }) {
   const [users, setUsers] = useState<ManagedUser[]>([])
   const [createdUser, setCreatedUser] = useState<CreatedUser | null>(null)
   const [loading, setLoading] = useState(true)
@@ -42,9 +36,7 @@ export default function UserManagement({
   })
   return (
     <section className="management" aria-labelledby="accounts-title">
-      <h2 ref={headingRef} id="accounts-title" tabIndex={-1}>
-        Family accounts
-      </h2>
+      <h2 id="accounts-title">Family accounts</h2>
       <output>
         {loading
           ? 'Loading family accounts…'

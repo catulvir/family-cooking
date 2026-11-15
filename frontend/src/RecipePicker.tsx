@@ -100,20 +100,19 @@ function RecipePickerSearch({
 }) {
   const discovery = useRecipeDiscovery()
   const input = useRef<HTMLInputElement>(null)
-  const heading = useRef<HTMLHeadingElement>(null)
+  const opened = useRef(false)
   const id = useId()
   useEffect(() => {
+    if (opened.current) return
+    opened.current = true
     if (active) input.current?.focus()
   }, [active])
   const changePage = (page: number) => {
-    heading.current?.focus()
     discovery.changePage(page)
   }
   return (
     <section className="recipe-picker" aria-label="Choose a recipe">
-      <h4 ref={heading} tabIndex={-1}>
-        Find a family recipe
-      </h4>
+      <h4>Find a family recipe</h4>
       <div className="form-field">
         <label htmlFor={`${id}-query`}>Find a recipe</label>
         <input

@@ -80,18 +80,17 @@ export default function MealForm({
   const keepButton = useRef<HTMLButtonElement>(null)
   const continueButton = useRef<HTMLButtonElement>(null)
   const returnTo = useRef<HTMLButtonElement | null>(null)
-  const focusedRequest = useRef<string | null>(null)
+  const previousDiscard = useRef(discard)
   useEffect(() => {
+    const changed = previousDiscard.current !== discard
+    previousDiscard.current = discard
     if (!active) return
-    if (discard) keepButton.current?.focus()
+    if (discard && changed) keepButton.current?.focus()
     else if (returnTo.current) {
       returnTo.current.focus()
       returnTo.current = null
-    } else if (pendingRecipe && focusedRequest.current !== pendingRecipe.token) {
-      focusedRequest.current = pendingRecipe.token
-      continueButton.current?.focus()
     }
-  }, [pendingRecipe, active, discard])
+  }, [active, discard])
   const keepEditing = () => {
     returnTo.current = (discard?.recipe ? startButton : cancelButton).current
     setDiscard(null)

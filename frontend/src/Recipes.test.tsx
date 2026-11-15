@@ -269,9 +269,9 @@ it('locks a pending reload, ignores duplicate actions, and honors refreshed edit
   await waitFor(() =>
     expect(screen.queryByLabelText('Recipe notes (optional)')).not.toBeInTheDocument(),
   )
-  expect(screen.getByRole('heading', { name: 'Meal journal' })).toHaveFocus()
+  expect(screen.getByRole('heading', { name: 'Meal journal' })).not.toHaveFocus()
   fireEvent.click(screen.getByRole('button', { name: 'Recipes' }))
-  expect(screen.getByRole('heading', { name: 'Latest recipe' })).toHaveFocus()
+  expect(screen.getByRole('heading', { name: 'Latest recipe' })).not.toHaveFocus()
   expect(screen.queryByRole('button', { name: 'Edit recipe' })).not.toBeInTheDocument()
 })
 
@@ -363,7 +363,7 @@ it('keeps hidden pending-save errors from stealing journal focus and retries wit
   await waitFor(() =>
     expect(screen.getByLabelText('Step 2')).toHaveAttribute('aria-invalid', 'true'),
   )
-  expect(journalHeading).toHaveFocus()
+  expect(journalHeading).not.toHaveFocus()
   expect(writes).toHaveLength(1)
   fireEvent.click(screen.getByRole('button', { name: 'Recipes' }))
   expect(screen.getByLabelText('Recipe notes (optional)')).toHaveValue('Keep these notes')
@@ -396,7 +396,7 @@ async function fillRecipe() {
 it('creates a recipe with ordered content and opens its detail', async () => {
   await fillRecipe()
   fireEvent.click(screen.getByRole('button', { name: 'Save recipe' }))
-  expect(await screen.findByRole('heading', { name: 'Pumpkin soup' })).toHaveFocus()
+  expect(await screen.findByRole('heading', { name: 'Pumpkin soup' })).not.toHaveFocus()
   expect(screen.getByText('1/2 kg Pumpkin')).toBeInTheDocument()
   expect(screen.getByText('Cook.')).toBeInTheDocument()
   expect(writes).toHaveLength(1)
@@ -470,16 +470,18 @@ it('pages the library and keeps the page when returning from detail', async () =
   next.focus()
   fireEvent.click(next)
   await screen.findByText('Page 2 of 2')
-  expect(screen.getByRole('heading', { name: 'Recipes' })).toHaveFocus()
+  expect(screen.getByRole('heading', { name: 'Recipes' })).not.toHaveFocus()
   fireEvent.click(await screen.findByRole('button', { name: 'Pumpkin soup' }))
   fireEvent.click(await screen.findByRole('button', { name: 'Back to recipes' }))
   expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument()
-  await waitFor(() => expect(screen.getByRole('button', { name: 'Pumpkin soup' })).toHaveFocus())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Pumpkin soup' })).not.toHaveFocus(),
+  )
   const previous = screen.getByRole('button', { name: 'Previous' })
   previous.focus()
   fireEvent.click(previous)
   await screen.findByText('Page 1 of 2')
-  expect(screen.getByRole('heading', { name: 'Recipes' })).toHaveFocus()
+  expect(screen.getByRole('heading', { name: 'Recipes' })).not.toHaveFocus()
 })
 
 it.each(['success', 'failure', 'navigation'] as const)(
@@ -496,7 +498,7 @@ it.each(['success', 'failure', 'navigation'] as const)(
     next.focus()
     fireEvent.click(next)
     await waitFor(() => expect(pendingList).toBeDefined())
-    expect(screen.getByRole('heading', { name: 'Recipes' })).toHaveFocus()
+    expect(screen.getByRole('heading', { name: 'Recipes' })).not.toHaveFocus()
     if (outcome === 'failure') readFailure = 'list'
     if (outcome === 'navigation') fireEvent.click(screen.getByRole('button', { name: 'Journal' }))
     pendingList!()
@@ -504,7 +506,7 @@ it.each(['success', 'failure', 'navigation'] as const)(
     else await screen.findByText('Page 2 of 2')
     expect(
       screen.getByRole('heading', { name: outcome === 'navigation' ? 'Meal journal' : 'Recipes' }),
-    ).toHaveFocus()
+    ).not.toHaveFocus()
   },
 )
 
@@ -557,7 +559,7 @@ it('discards an edit only explicitly and reloads the current version', async () 
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
   fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }))
   await screen.findByRole('heading', { name: 'Updated by administrator' })
-  expect(screen.getByRole('button', { name: 'Edit recipe' })).toHaveFocus()
+  expect(screen.getByRole('button', { name: 'Edit recipe' })).not.toHaveFocus()
   fireEvent.click(screen.getByRole('button', { name: 'Edit recipe' }))
   expect(screen.getByLabelText('Recipe name')).toHaveValue('Updated by administrator')
   expect(writes).toHaveLength(0)

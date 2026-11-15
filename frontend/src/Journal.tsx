@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { dishesApi, type Dish, type RecipeLink, type CookRequest } from './api/dishes'
 import { ArrowLeft, Pencil, Plus } from 'lucide-react'
 import MealForm from './MealForm'
@@ -11,12 +11,14 @@ type JournalView =
 export default function Journal({
   active = true,
   cookRequest,
+  mealReturn,
   onOpenRecipe,
   onReturnToRecipe,
 }: {
   active?: boolean
   cookRequest?: CookRequest | null
-  onOpenRecipe?: (recipe: RecipeLink) => void
+  mealReturn?: { token: string; dish: Dish } | null
+  onOpenRecipe?: (recipe: RecipeLink, dish: Dish) => void
   onReturnToRecipe?: (recipe: RecipeLink) => void
 }) {
   const [dishes, setDishes] = useState<Dish[]>([])
@@ -24,12 +26,7 @@ export default function Journal({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const region = useRef<HTMLElement>(null)
-  const returnFocus = useRef<(() => HTMLElement | null | undefined) | null>(null)
-  const addButton = useRef<HTMLButtonElement>(null)
-  const editButton = useRef<HTMLButtonElement>(null)
-  const mealButtons = useRef(new Map<string, HTMLButtonElement>())
-  const recipeButton = useRef<HTMLButtonElement>(null)
+  const [lastMealReturn, setLastMealReturn] = useState<string | null>(null)
   const [lastCookRequest, setLastCookRequest] = useState<string | null>(null)
   const [pendingRecipe, setPendingRecipe] = useState<CookRequest | null>(null)
   const startRecipeMeal = (recipe: RecipeLink) => {
@@ -47,15 +44,18 @@ export default function Journal({
       setView({ kind: 'form', sourceRecipe: cookRequest.recipe, draftId: cookRequest.token })
     }
   }
-  useLayoutEffect(() => {
-    if (active) {
-      const target =
-        returnFocus.current?.() ??
-        region.current?.querySelector<HTMLElement>(`#journal-${view.kind}-title`)
-      target?.focus()
-      returnFocus.current = null
-    }
-  }, [active, view])
+  const returningMeal = mealReturn && mealReturn.token !== lastMealReturn ? mealReturn.dish : null
+  // A recipe visit owns its return destination, independently of later cooking.
+  // If another draft is open, retain it until the member saves or cancels it.
+  if (returningMeal && view.kind !== 'form') {
+    setLastMealReturn(mealReturn!.token)
+    setPendingRecipe(null)
+    setNotice('')
+    setView({
+      kind: 'detail',
+      dish: dishes.find((dish) => dish.id === returningMeal.id) ?? returningMeal,
+    })
+  }
 
   const load = () => {
     setLoading(true)
@@ -89,8 +89,11 @@ export default function Journal({
   }
 
   return (
-    <section ref={region} className="journal" aria-labelledby={`journal-${view.kind}-title`}>
+    <section className="journal" aria-labelledby={`journal-${view.kind}-title`}>
       <output>{view.kind === 'list' && loading ? 'Loading meals…' : notice}</output>
+      {returningMeal && view.kind === 'form' && (
+        <output>Save or cancel your current meal draft to return to {returningMeal.name}.</output>
+      )}
       {pendingRecipe && view.kind !== 'form' && (
         <section aria-label="Requested new meal">
           <p>Your previous meal is saved. Start a new meal from {pendingRecipe.recipe.name}?</p>
@@ -109,7 +112,6 @@ export default function Journal({
               Meal journal
             </h2>
             <button
-              ref={addButton}
               onClick={() => {
                 setNotice('')
                 setView({ kind: 'form' })
@@ -131,14 +133,7 @@ export default function Journal({
             <ul className="dish-list">
               {dishes.map((dish) => (
                 <li key={dish.id}>
-                  <button
-                    ref={(button) => {
-                      if (button) mealButtons.current.set(dish.id, button)
-                      else mealButtons.current.delete(dish.id)
-                    }}
-                    className="dish-link"
-                    onClick={() => showDetail(dish)}
-                  >
+                  <button className="dish-link" onClick={() => showDetail(dish)}>
                     {dish.name}
                   </button>
                   <time dateTime={dish.preparedOn}>{formatDate(dish.preparedOn)}</time>
@@ -150,20 +145,16 @@ export default function Journal({
       )}
       {view.kind === 'detail' && (
         <MealDetail
-          editRef={editButton}
-          recipeRef={recipeButton}
           dish={view.dish}
           onOpenRecipe={
             onOpenRecipe
               ? (recipe) => {
-                  returnFocus.current = () => recipeButton.current
-                  onOpenRecipe(recipe)
+                  onOpenRecipe(recipe, view.dish)
                 }
               : undefined
           }
           onBack={() => {
             setNotice('')
-            returnFocus.current = () => mealButtons.current.get(view.dish.id)
             setView({ kind: 'list' })
           }}
           onEdit={() => {
@@ -183,9 +174,8 @@ export default function Journal({
           onReplace={startRecipeMeal}
           onCancel={() => {
             setPendingRecipe(null)
-            returnFocus.current = () => (view.dish ? editButton.current : addButton.current)
             setView(view.dish ? { kind: 'detail', dish: view.dish } : { kind: 'list' })
-            if (view.sourceRecipe) onReturnToRecipe?.(view.sourceRecipe)
+            if (view.sourceRecipe && !returningMeal) onReturnToRecipe?.(view.sourceRecipe)
           }}
           onSaved={saved}
         />
@@ -206,15 +196,11 @@ function compareDishes(left: Dish, right: Dish) {
 }
 
 function MealDetail({
-  editRef,
-  recipeRef,
   dish,
   onBack,
   onEdit,
   onOpenRecipe,
 }: {
-  editRef: React.Ref<HTMLButtonElement>
-  recipeRef: React.Ref<HTMLButtonElement>
   dish: Dish
   onBack: () => void
   onEdit: () => void
@@ -232,12 +218,12 @@ function MealDetail({
       {dish.location && <p>{dish.location}</p>}
       {dish.notes && <p className="notes">{dish.notes}</p>}
       {dish.recipe && onOpenRecipe && (
-        <button ref={recipeRef} className="secondary" onClick={() => onOpenRecipe(dish.recipe!)}>
+        <button className="secondary" onClick={() => onOpenRecipe(dish.recipe!)}>
           View recipe: {dish.recipe.name}
         </button>
       )}
       {dish.canEdit && (
-        <button ref={editRef} onClick={onEdit}>
+        <button onClick={onEdit}>
           <Pencil aria-hidden="true" /> Edit meal
         </button>
       )}

@@ -2,6 +2,8 @@
 
 Completed locally on 2026-11-15. Next: **milestone 7 — Photos and personal profiles**. No commit, push, or deployment was performed during 6.6.
 
+Post-handoff review: [originating-meal return fix and updated navigation focus preference](milestone-6-review-fixes.md). That follow-up used targeted verification; the full-suite/browser results below remain the original 6.6 evidence.
+
 ## Delivered
 
 Active members can create shared recipes with ordered ingredients/instructions, servings, notes and grouped tags. Creators and administrators can edit; version checking prevents concurrent edits from silently overwriting content. Recipe and account drafts survive main-view navigation, and changed drafts require explicit discard.

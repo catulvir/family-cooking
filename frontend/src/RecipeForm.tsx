@@ -81,13 +81,16 @@ export default function RecipeForm({
   const cancelButton = useRef<HTMLButtonElement>(null)
   const reloadButton = useRef<HTMLButtonElement>(null)
   const focusReloadAfterFailure = useRef(false)
+  const previousDiscardAction = useRef(discardAction)
   useEffect(() => {
     if (reloading || !focusReloadAfterFailure.current) return
     focusReloadAfterFailure.current = false
     if (active) reloadButton.current?.focus()
   }, [active, reloading])
   useEffect(() => {
-    if (discardAction && active) keepButton.current?.focus()
+    const changed = previousDiscardAction.current !== discardAction
+    previousDiscardAction.current = discardAction
+    if (changed && discardAction && active) keepButton.current?.focus()
   }, [discardAction, active])
   const keepEditing = () => {
     setDiscardAction(null)

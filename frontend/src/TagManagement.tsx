@@ -37,9 +37,9 @@ export default function TagManagement({
   const [editing, setEditing] = useState<RecipeTag | null>(null)
   const [notice, setNotice] = useState('')
   const [replacement, setReplacement] = useState<{ tag: RecipeTag | null } | null>(null)
-  const heading = useRef<HTMLHeadingElement>(null)
   const editor = useRef<HTMLDivElement>(null)
   const keep = useRef<HTMLButtonElement>(null)
+  const previousReplacement = useRef(replacement)
   const trigger = useRef<HTMLElement | null>(null)
   const focusAfterRender = useRef<'name' | 'trigger' | null>(null)
   const mounted = useRef(true)
@@ -74,9 +74,6 @@ export default function TagManagement({
     },
   })
   useLayoutEffect(() => {
-    if (active) heading.current?.focus()
-  }, [active])
-  useLayoutEffect(() => {
     if (formik.isSubmitting || replacement || !focusAfterRender.current) return
     const target =
       focusAfterRender.current === 'name' ? editor.current?.querySelector('input') : trigger.current
@@ -84,7 +81,9 @@ export default function TagManagement({
     if (active) target?.focus()
   })
   useEffect(() => {
-    if (replacement && active) keep.current?.focus()
+    const changed = previousReplacement.current !== replacement
+    previousReplacement.current = replacement
+    if (changed && replacement && active) keep.current?.focus()
   }, [replacement, active])
   const replace = (tag: RecipeTag | null) => {
     setEditing(tag)
@@ -108,9 +107,7 @@ export default function TagManagement({
       <button className="secondary" disabled={formik.isSubmitting} onClick={onBack}>
         Back to recipe
       </button>
-      <h2 id="tags-title" ref={heading} tabIndex={-1}>
-        Manage tags
-      </h2>
+      <h2 id="tags-title">Manage tags</h2>
       <p>
         Create or rename tags for the family. A tag keeps its group and existing recipe selections
         when renamed.
