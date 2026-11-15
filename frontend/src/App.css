@@ -540,6 +540,21 @@ button.dish-link:hover:not(:disabled) {
   background: var(--notice-background-color);
   overflow-wrap: anywhere;
 }
+.profile-identity {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  overflow-wrap: anywhere;
+}
+.profile-avatar {
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--surface-inset-color);
+}
 .temporary-password code {
   width: fit-content;
   max-width: 100%;

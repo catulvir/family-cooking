@@ -90,13 +90,13 @@ it.each(['another control', 'no focus target'])(
   },
 )
 
-it('only offers sign out to members and no protected navigation before password change', async () => {
+it('offers profile and sign out to members and no protected navigation before password change', async () => {
   vi.mocked(authApi.currentUser).mockResolvedValue({ ...admin, role: 'MEMBER' })
   const { unmount } = render(<App />)
   fireEvent.click(await screen.findByRole('button', { name: 'Account' }))
   expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Family accounts' })).not.toBeInTheDocument()
-  expect(screen.queryByRole('button', { name: 'Profile' })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Profile' })).toBeInTheDocument()
   expect(authApi.users).not.toHaveBeenCalled()
   unmount()
   vi.mocked(authApi.currentUser).mockResolvedValue({ ...admin, mustChangePassword: true })

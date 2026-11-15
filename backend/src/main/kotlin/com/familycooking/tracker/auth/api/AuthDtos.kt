@@ -20,6 +20,7 @@ data class CurrentUserResponse(
     val role: String,
     val status: String,
     val mustChangePassword: Boolean,
+    val displayName: String?,
 )
 
 fun AppUser.toCurrentUserResponse() = CurrentUserResponse(
@@ -27,4 +28,5 @@ fun AppUser.toCurrentUserResponse() = CurrentUserResponse(
     role = role.name,
     status = status.name,
     mustChangePassword = mustChangePassword,
+    displayName = displayName,
 )

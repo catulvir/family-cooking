@@ -2,6 +2,7 @@ const apiOrigin = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ?? ''
 
 export interface CurrentUser {
   email: string
+  displayName?: string | null
   role: 'ADMIN' | 'MEMBER'
   status: 'PENDING' | 'ACTIVE' | 'DISABLED'
   mustChangePassword: boolean

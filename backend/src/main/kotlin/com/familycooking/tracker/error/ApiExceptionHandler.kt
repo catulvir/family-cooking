@@ -11,6 +11,10 @@ import java.time.Instant
 
 @RestControllerAdvice
 class ApiExceptionHandler {
+    @ExceptionHandler(com.familycooking.tracker.users.ProfileConflictException::class)
+    fun handleProfileConflict(exception: com.familycooking.tracker.users.ProfileConflictException, request: HttpServletRequest): ResponseEntity<ApiError> =
+        error(HttpStatus.CONFLICT, "PROFILE_CONFLICT", exception.message!!, request)
+
     @ExceptionHandler(com.familycooking.tracker.recipes.InvalidRecipeReferenceException::class)
     fun handleInvalidRecipeReference(request: HttpServletRequest): ResponseEntity<ApiError> =
         error(HttpStatus.BAD_REQUEST, "INVALID_RECIPE_REFERENCE", "Select an existing recipe.", request, mapOf("recipeId" to "Select an existing recipe."))
