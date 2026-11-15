@@ -99,6 +99,7 @@ class ProfileMigrationTest : PostgresTestSupport() {
             .dataSource(dataSource)
             .schemas(schema)
             .defaultSchema(schema)
+            .target("8")
             .load()
         assertEquals(1, upgraded.migrate().migrationsExecuted)
         upgraded.validate()

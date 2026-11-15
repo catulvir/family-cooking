@@ -1,6 +1,6 @@
 # Milestone 7 — Photos and personal profiles
 
-Status: **7.1 implemented locally on 2026-11-15**; 7.2–7.6 remain planned. [7.1 handoff and verification](milestone-7.1-handoff.md). No hosted configuration changes or deployment have been made. Remaining photo scope and limits below are planning defaults.
+Status: **7.1 and 7.2 implemented locally on 2026-11-15**; 7.3–7.6 remain planned. [7.1 handoff](milestone-7.1-handoff.md), [7.2 handoff and verification](milestone-7.2-handoff.md). No hosted configuration changes or deployment have been made. The [Storage setup runbook](photo-storage-setup.md) is ready for configuration before hosted acceptance.
 
 Build on the [milestone 6 handoff](milestone-6-handoff.md), its [review fixes](milestone-6-review-fixes.md), and the [accepted visual direction](milestone-4-ui-design.md). Journal remains the initial signed-in view. Add Profile to the Account disclosure; retain the existing meal terminology and cream/terracotta/green interface.
 
@@ -101,6 +101,8 @@ Acceptance: legacy accounts still log in; a member edits only their own name; in
 
 ### 7.2 — Private image foundation
 
+Implemented: V9, disabled-by-default Storage configuration, the private Supabase HTTP adapter, bounded JPEG/PNG processing and metadata-free thumbnails, authenticated metadata/byte delivery, all three parents' backend mutations, and durable operation/cleanup recovery. **74 backend tests passed, zero skipped**, including real HTTP multipart limits, local adapter contract tests, and migration/lifecycle/permission checks. Frontend controls remain for 7.3–7.5. [7.2 handoff](milestone-7.2-handoff.md), [exact setup steps](photo-storage-setup.md). Live provider acceptance and browser/full frontend checks remain in 7.6.
+
 Deliver Storage configuration/adapter, metadata migrations, bounded image validation/processing, authenticated byte delivery, and durable operation/cleanup support. Add configuration examples and a deployment runbook with no real credentials. Keep feature controls hidden until their complete user flow is available.
 
 Acceptance: verify JPEG/PNG decoding, rotated images, metadata removal, limits, corrupt/spoofed inputs, unauthorized bytes, CSRF, Storage timeout/partial failure, safe retries, restart recovery, and cleanup that never removes referenced images. Contract tests verify the actual adapter's paths, credential headers, and error handling against a local HTTP stub. Backend tests do not require production credentials.
@@ -135,7 +137,7 @@ Acceptance: another member and an administrator cannot mutate someone else's pro
 
 ## Render and Supabase setup changes
 
-The current repository configures PostgreSQL, cookie sessions, CORS, and display-name profiles; it has no Storage integration. The following variables are **proposed for implementation in 7.2**, not supported by today's code. Provide the exact setup checklist when implementing 7.2, before hosted photo acceptance. Live Render/Supabase dashboards were not inspected during planning or 7.1.
+The repository now supports the Storage configuration below as of 7.2. **Prepare it before hosted photo acceptance**, following the [exact setup and operation runbook](photo-storage-setup.md). Photos remain disabled by default, so the existing application can run without these credentials. Live Render/Supabase dashboards were not inspected or changed during planning or implementation.
 
 | Area | Required change for milestone 7 |
 | --- | --- |
@@ -158,4 +160,4 @@ Suggested rollout: implement/test with isolated storage; provision or verify pro
 
 ## Planning verification
 
-The original planning pass reviewed the roadmap, accepted design, milestone 6 handoff/review fixes, account/security/API code, migration inventory through V7, and committed environment examples. It checked the official Supabase and Render documentation linked above on 2026-11-15, without running application tests or changing hosted services. Subsequent 7.1 implementation and verification are recorded in its handoff; browser checks, real bucket access, hosted configuration, and deployment remain outstanding.
+The original planning pass reviewed the roadmap, accepted design, milestone 6 handoff/review fixes, account/security/API code, migration inventory through V7, and committed environment examples. It checked the official Supabase and Render documentation linked above on 2026-11-15, without running application tests or changing hosted services. Subsequent 7.1 and 7.2 implementation and verification are recorded in their handoffs; browser checks, real bucket access, hosted configuration, and deployment remain outstanding.
