@@ -1,4 +1,5 @@
 target/
+.photo-codecs/
 .git/
 .env
 *.log

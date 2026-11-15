@@ -1,12 +1,14 @@
 # Family Cooking Tracker
 
-Private, family-only web application for recording family meals and maintaining reusable recipes with ingredients and instructions. Reviews and protected photos are planned for later milestones.
+Private, family-only web application for recording family meals and maintaining reusable recipes with ingredients and instructions. Private photo backend support is available; photo UI and reviews remain planned.
 
 ## Current milestone
 
 Latest review follow-up: linked recipes preserve their originating meal after cancelling or saving a cooking draft, and views no longer autofocus on arrival. [Changes and targeted verification](docs/milestone-6-review-fixes.md).
 
-**Milestone 7.1 is implemented locally**: Account → Profile, optional display names, read-only email, protected drafts and conflict recovery, and immediate signed-in identity refresh. Verification passed **50 backend tests (zero skipped), 34 focused frontend tests**, changed-file lint/format checks, and production build. Browser and full frontend verification remain deferred to 7.6. **No manual Render/Supabase changes are needed for 7.1**; Flyway applies V8 on deployment. Next: **7.2 — Private image foundation**, when Storage setup instructions will be provided. [7.1 handoff](docs/milestone-7.1-handoff.md), [milestone 7 plan](docs/milestone-7-plan.md).
+**Milestone 7.2 is implemented locally**, including backend HEIC/HEIF-to-JPEG conversion: private Storage adapter, V9 metadata/operation tracking, bounded image processing, protected photo APIs, and durable cleanup recovery. Backend verification passed **81 tests, zero skipped**, plus three Linux codec tests and a packaged Docker conversion smoke check. Photos are disabled by default; no frontend upload controls are exposed yet. **Render/Supabase Storage setup can now be prepared** using the [setup runbook](docs/photo-storage-setup.md), before hosted photo acceptance. Docker includes the HEIC runtime; plain-JAR deployments need its additional codec setup. No hosted changes or deployment were performed. Next: **7.3 — Meal photos**. [7.2 handoff and limits](docs/milestone-7.2-handoff.md), [milestone 7 plan](docs/milestone-7-plan.md).
+
+**Milestone 7.1 is implemented locally**: Account → Profile, optional display names, read-only email, protected drafts and conflict recovery, and immediate signed-in identity refresh. Its verification passed **50 backend tests (zero skipped), 34 focused frontend tests**, changed-file lint/format checks, and production build. Browser and full frontend verification remain deferred to 7.6. [7.1 handoff](docs/milestone-7.1-handoff.md).
 
 **Milestone 6 is complete locally** as of 2026-11-15: shared recipes, ordered ingredients/instructions, protected editing and drafts, administrator-managed tags, search/filter/sort/pagination, and optional meal-to-recipe links. Final verification passed **44 backend tests (zero skipped), 128 frontend tests**, lint, formatting and production build. Live packaged-app workflows and 36 Chrome captures covered three widths and actual 200% zoom. See the [final handoff and coverage limits](docs/milestone-6-handoff.md) and [completed plan](docs/milestone-6-plan.md).
 
@@ -31,7 +33,7 @@ Milestone **6.4 is implemented**: recipe discovery includes literal name search,
 
 Milestone **6.5 is implemented**: meals can select, replace or clear a recipe link; Record cooking starts a separate unsaved meal. Existing drafts are protected, and links open current recipe content without rewriting saved meal fields. See the [6.5 handoff](docs/milestone-6.5-handoff.md).
 
-There is deliberately no email delivery, invitation token, password-reset, MFA, direct browser connection to Supabase, dish/recipe deletion, reviews, ratings, normalized dish ingredients, or photos yet.
+There is deliberately no email delivery, invitation token, password-reset, MFA, direct browser connection to Supabase, dish/recipe deletion, reviews, ratings, normalized dish ingredients, or photo upload UI yet. Photo APIs require explicit Storage activation and setup.
 
 ## Architecture
 
@@ -54,6 +56,7 @@ Recipe persistence uses transactional JDBC with a version-checked aggregate upda
 - Maven is optional when using the included Maven Wrapper.
 - Node.js 24 with npm
 - Docker Desktop or another Docker-compatible runtime for PostgreSQL and Testcontainers
+- Python 3.12 with the pinned photo codecs for HEIC conversion and backend tests; the backend Docker image includes them. See [codec setup](docs/photo-storage-setup.md#2-configure-the-render-backend).
 
 ## Run locally
 
@@ -105,7 +108,7 @@ Run the backend verification from `backend/`:
 .\mvnw.cmd verify
 ```
 
-The PostgreSQL suites start temporary PostgreSQL 17 containers through Testcontainers. Run with Docker available: domain and migration suites deliberately fail rather than silently skipping database coverage.
+The PostgreSQL suites start temporary PostgreSQL 17 containers through Testcontainers. Run with Docker available: domain and migration suites deliberately fail rather than silently skipping database coverage. Install the [photo codecs](docs/photo-storage-setup.md#2-configure-the-render-backend) and set `PHOTO_HEIC_PYTHON` before running backend tests; actual HEIC fixtures are decoded, not skipped when the dependency is missing. CI also checks Linux conversion limits.
 
 Run the frontend checks from `frontend/`:
 
@@ -136,6 +139,10 @@ Add PostgreSQL migrations under `backend/src/main/resources/db/migration` using 
 | `SESSION_COOKIE_SAME_SITE` | `lax` for same-site deployment; set `none` with `SESSION_COOKIE_SECURE=true` for separate frontend and API origins |
 | `VITE_API_BASE_URL` | Development API origin used by the Vite proxy; configure it in `frontend/.env.local` |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated browser origins allowed to call the API; set this to the deployed frontend URL on Render |
+| `PHOTO_HEIC_PYTHON` | Absolute Python interpreter path with the pinned photo codecs; supplied by the Docker image, defaults to `python3` for plain-JAR/local runs |
+| `PHOTO_STORAGE_ENABLED` | Defaults to `false`; enable the private photo API after Storage configuration |
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | HTTPS project origin and backend-only `sb_secret_...` credential; never frontend variables |
+| `STORAGE_DISH_PHOTOS_BUCKET`, `STORAGE_RECIPE_PHOTOS_BUCKET`, `STORAGE_AVATARS_BUCKET` | Private bucket names; defaults `dish-photos`, `recipe-photos`, `avatars`; see [required restrictions](docs/photo-storage-setup.md) |
 
 `.env` is ignored by Git. Keep actual passwords and deployment secrets out of the repository.
 
@@ -147,7 +154,7 @@ An active administrator can create accounts from the UI. The UI reveals a genera
 
 ## Render readiness
 
-The backend supports managed PostgreSQL through `DATABASE_URL` (in JDBC URL form) or the individual `DB_*` variables. It uses forwarded-header support for a reverse proxy and exposes only the unauthenticated health checks. Persisted photos will later use private object storage; the application will not depend on the Render filesystem for uploads.
+The backend supports managed PostgreSQL through `DATABASE_URL` (in JDBC URL form) or the individual `DB_*` variables. It uses forwarded-header support for a reverse proxy and exposes only the unauthenticated health checks. Persisted photos use private object storage when enabled; the application does not depend on the Render filesystem for durable uploads.
 
 For a same-origin Render deployment, use this build command from the repository root:
 
@@ -155,7 +162,7 @@ For a same-origin Render deployment, use this build command from the repository 
 npm --prefix frontend ci && npm --prefix frontend run build && cd backend && bash ./mvnw --batch-mode package
 ```
 
-The backend Maven build includes `frontend/dist` in the packaged Spring Boot JAR when that directory exists, so the resulting service serves the React build and API from one origin. Configure Render to start it with `java -jar backend/target/family-cooking-api-0.0.1-SNAPSHOT.jar`, supply a Render PostgreSQL connection as `DATABASE_URL` in JDBC form, and set `PORT` if Render requires it.
+The backend Maven build includes `frontend/dist` in the packaged Spring Boot JAR when that directory exists, so the resulting service serves the React build and API from one origin. Configure Render to start it with `java -jar backend/target/family-cooking-api-0.0.1-SNAPSHOT.jar`, supply a Render PostgreSQL connection as `DATABASE_URL` in JDBC form, and set `PORT` if Render requires it. This plain-JAR path also needs Python 3.12 and the [photo-codec installation and interpreter setting](docs/photo-storage-setup.md#2-configure-the-render-backend) for HEIC; Maven alone does not install native codecs.
 
 For separate Render services, deploy `frontend/` as a Static Site with `npm ci && npm run build` and publish `dist`. Set its build-time `VITE_API_BASE_URL` to the API's public HTTPS URL. Deploy `backend/` as a Docker Web Service with `backend/` as its root directory; its `Dockerfile` builds and starts the API. Set `CORS_ALLOWED_ORIGINS` to the static site's exact HTTPS origin, `SESSION_COOKIE_SAME_SITE=none`, and `SESSION_COOKIE_SECURE=true`. This permits credentialed cross-origin requests; browser privacy settings that block all third-party cookies remain incompatible with a separate-origin cookie session.
 
@@ -163,7 +170,7 @@ For separate Render services, deploy `frontend/` as a Static Site with `npm ci &
 
 Create the Supabase project in **Central EU (Frankfurt)**. Render is IPv4-only, so in Supabase's **Connect** dialog select the **Shared pooler, session mode** connection string rather than the IPv6-only direct connection. Copy its individual host, port, database, and username values into the Render backend's `DB_HOST`, `DB_PORT`, `DB_NAME`, and `DB_USERNAME` variables, respectively; enter the generated database password as `DB_PASSWORD`. Also set `DB_SSL_MODE=require`, `DB_POOL_SIZE=5`, `SESSION_COOKIE_SECURE=true`, `BOOTSTRAP_ADMIN_EMAIL=rozbergs@gmail.com`, and a unique `BOOTSTRAP_ADMIN_PASSWORD`. Do not set `DATABASE_URL` in Render when using these individual values. Flyway will apply the additive credential migration and retain all prior data.
 
-Create the future `dish-photos` bucket as a private Supabase Storage bucket. The backend will use it only after the protected-upload milestone is implemented; it will store object keys and photo metadata in PostgreSQL, not raw image bytes.
+Milestone 7.2 implements private Storage support for `dish-photos`, `recipe-photos`, and `avatars`, with generated object keys and metadata in PostgreSQL. Follow the [Storage setup runbook](docs/photo-storage-setup.md) for exact bucket restrictions, backend secrets, activation, and readiness checks. Keep `PHOTO_STORAGE_ENABLED=false` until ready; the existing app works without Storage credentials.
 
 ## Next milestones
 
@@ -172,7 +179,7 @@ Milestones 1–3 provide the implemented foundation, private access, and cooking
 4. **UI design agreement** — accepted direction for screen layouts, visual system, navigation, responsive behaviour, and acceptance scenarios. [Design reference and TDD handoff](docs/milestone-4-ui-design.md).
 5. **App shell and journal redesign** — complete: consolidated styling, botanical decoration, draft preservation, shared Formik/Yup forms, accessible navigation/focus/feedback, responsive browser review, and final verification. [Handoff](docs/milestone-5-handoff.md).
 6. **Recipe library and discovery** — complete locally: reusable recipes, ordered ingredients/instructions, creator/admin editing, protected drafts/conflict recovery, administrator-managed tags, search/filter/sort/pagination and optional meal links. [Final verification and limits](docs/milestone-6-handoff.md).
-7. **Photos and personal profiles** — 7.1 display-name profiles complete locally; protected photos, thumbnails, and avatars remain planned. [Implementation plan and Render/Supabase setup changes](docs/milestone-7-plan.md).
+7. **Photos and personal profiles** — 7.1 display-name profiles and 7.2 private photo backend complete locally; meal/recipe photo and avatar UI remain planned. [Implementation plan and Render/Supabase setup changes](docs/milestone-7-plan.md).
 8. **Favourites and seasonal home** — personal favourites, shared curated collections, and recently cooked dishes.
 9. **Ingredient-aware discovery** — normalized dish ingredients and any/all/exclude ingredient search, independently editable from recipes.
 10. **Reviews and ratings** — optional feedback with explicit visibility, member ownership, and administrator access; rankings only if compatible with review privacy.

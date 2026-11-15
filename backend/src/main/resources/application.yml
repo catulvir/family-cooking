@@ -16,10 +16,19 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+      file-size-threshold: 0
 
 server:
   port: ${PORT:8080}
   forward-headers-strategy: framework
+  tomcat:
+    # Drain ordinary oversized uploads so the browser receives the JSON 413.
+    # Keep draining bounded; accepted multipart requests are still limited to 6 MiB.
+    max-swallow-size: 8MB
   servlet:
     session:
       timeout: 30d
@@ -40,6 +49,14 @@ management:
         include: health,info
 
 app:
+  photos:
+    enabled: ${PHOTO_STORAGE_ENABLED:false}
+    heic-python: ${PHOTO_HEIC_PYTHON:python3}
+    supabase-url: ${SUPABASE_URL:}
+    secret-key: ${SUPABASE_SECRET_KEY:}
+    dish-bucket: ${STORAGE_DISH_PHOTOS_BUCKET:dish-photos}
+    recipe-bucket: ${STORAGE_RECIPE_PHOTOS_BUCKET:recipe-photos}
+    avatar-bucket: ${STORAGE_AVATARS_BUCKET:avatars}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   bootstrap-admin:

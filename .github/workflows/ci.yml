@@ -41,6 +41,16 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install photo codecs
+        run: |
+          python -m venv .photo-codecs
+          .photo-codecs/bin/pip install --only-binary=:all: -r photo-codecs-requirements.txt
+          echo "PHOTO_HEIC_PYTHON=$PWD/.photo-codecs/bin/python" >> "$GITHUB_ENV"
+      - name: Verify Linux HEIC runtime
+        run: .photo-codecs/bin/python src/test/resources/photos/test_heic_runtime.py
       - name: Test and build backend
         # GitHub's Ubuntu runners include Maven. Using it avoids a separate
         # Maven Wrapper distribution download before the build can begin.

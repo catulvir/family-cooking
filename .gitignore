@@ -10,6 +10,7 @@ frontend/.env
 
 # Backend
 backend/target/
+backend/.photo-codecs/
 *.log
 
 # Frontend

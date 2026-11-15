@@ -1,0 +1,3 @@
+# Binary wheels include libheif and its HEVC decoder; no system codec fallback.
+Pillow==13.0.0
+pillow-heif==1.8.1
