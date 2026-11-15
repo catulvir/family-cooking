@@ -1,7 +1,7 @@
 import { FormikProvider, useFormik } from 'formik'
 import { AppForm, FormField } from './forms'
 import { loginSchema, passwordSchema } from './formSchemas'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { authApi, AuthApiError, type CurrentUser } from './api/auth'
 import Dashboard from './Dashboard'
 import { messageFrom } from './errors'
@@ -13,6 +13,9 @@ export default function App() {
   const [checkingSession, setCheckingSession] = useState(true)
   const [error, setError] = useState('')
   const [sessionError, setSessionError] = useState(false)
+  const updateDisplayName = useCallback((displayName: string | null) => {
+    setUser((current) => (current ? { ...current, displayName } : current))
+  }, [])
 
   useEffect(() => {
     if (!checkingSession) return
@@ -65,6 +68,7 @@ export default function App() {
           ) : (
             <Dashboard
               user={user}
+              onProfileChanged={updateDisplayName}
               onLogout={() => {
                 setUser(null)
                 setError('')

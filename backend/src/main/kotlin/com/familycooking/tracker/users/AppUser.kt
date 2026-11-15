@@ -37,6 +37,10 @@ class AppUser(
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = Instant.now(),
+
+    // ProfileRepository owns writes; unrelated JPA account saves must not overwrite a newer profile.
+    @Column(name = "display_name", length = 80, insertable = false, updatable = false)
+    var displayName: String? = null,
 ) {
     fun prepareForUpdate() {
         updatedAt = Instant.now()

@@ -6,7 +6,9 @@ Private, family-only web application for recording family meals and maintaining 
 
 Latest review follow-up: linked recipes preserve their originating meal after cancelling or saving a cooking draft, and views no longer autofocus on arrival. [Changes and targeted verification](docs/milestone-6-review-fixes.md).
 
-**Milestone 6 is complete locally** as of 2026-11-15: shared recipes, ordered ingredients/instructions, protected editing and drafts, administrator-managed tags, search/filter/sort/pagination, and optional meal-to-recipe links. Final verification passed **44 backend tests (zero skipped), 128 frontend tests**, lint, formatting and production build. Live packaged-app workflows and 36 Chrome captures covered three widths and actual 200% zoom. See the [final handoff and coverage limits](docs/milestone-6-handoff.md) and [completed plan](docs/milestone-6-plan.md). Next: **milestone 7 — Photos and personal profiles**.
+**Milestone 7.1 is implemented locally**: Account → Profile, optional display names, read-only email, protected drafts and conflict recovery, and immediate signed-in identity refresh. Verification passed **50 backend tests (zero skipped), 34 focused frontend tests**, changed-file lint/format checks, and production build. Browser and full frontend verification remain deferred to 7.6. **No manual Render/Supabase changes are needed for 7.1**; Flyway applies V8 on deployment. Next: **7.2 — Private image foundation**, when Storage setup instructions will be provided. [7.1 handoff](docs/milestone-7.1-handoff.md), [milestone 7 plan](docs/milestone-7-plan.md).
+
+**Milestone 6 is complete locally** as of 2026-11-15: shared recipes, ordered ingredients/instructions, protected editing and drafts, administrator-managed tags, search/filter/sort/pagination, and optional meal-to-recipe links. Final verification passed **44 backend tests (zero skipped), 128 frontend tests**, lint, formatting and production build. Live packaged-app workflows and 36 Chrome captures covered three widths and actual 200% zoom. See the [final handoff and coverage limits](docs/milestone-6-handoff.md) and [completed plan](docs/milestone-6-plan.md).
 
 Milestone 5 established the redesigned private family cooking journal:
 
@@ -170,7 +172,7 @@ Milestones 1–3 provide the implemented foundation, private access, and cooking
 4. **UI design agreement** — accepted direction for screen layouts, visual system, navigation, responsive behaviour, and acceptance scenarios. [Design reference and TDD handoff](docs/milestone-4-ui-design.md).
 5. **App shell and journal redesign** — complete: consolidated styling, botanical decoration, draft preservation, shared Formik/Yup forms, accessible navigation/focus/feedback, responsive browser review, and final verification. [Handoff](docs/milestone-5-handoff.md).
 6. **Recipe library and discovery** — complete locally: reusable recipes, ordered ingredients/instructions, creator/admin editing, protected drafts/conflict recovery, administrator-managed tags, search/filter/sort/pagination and optional meal links. [Final verification and limits](docs/milestone-6-handoff.md).
-7. **Photos and personal profiles** — protected photos in private object storage, thumbnails, display names, and avatars.
+7. **Photos and personal profiles** — 7.1 display-name profiles complete locally; protected photos, thumbnails, and avatars remain planned. [Implementation plan and Render/Supabase setup changes](docs/milestone-7-plan.md).
 8. **Favourites and seasonal home** — personal favourites, shared curated collections, and recently cooked dishes.
 9. **Ingredient-aware discovery** — normalized dish ingredients and any/all/exclude ingredient search, independently editable from recipes.
 10. **Reviews and ratings** — optional feedback with explicit visibility, member ownership, and administrator access; rankings only if compatible with review privacy.

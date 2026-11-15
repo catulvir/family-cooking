@@ -6,20 +6,24 @@ import Recipes from './Recipes'
 import LinkedRecipe from './LinkedRecipe'
 import type { CookRequest, RecipeLink, Dish } from './api/dishes'
 import UserManagement from './UserManagement'
+import Profile from './Profile'
 import { messageFrom } from './errors'
 
 export default function Dashboard({
   user,
   onLogout,
   setError,
+  onProfileChanged,
 }: {
   user: CurrentUser
   onLogout: () => void
   setError: (message: string) => void
+  onProfileChanged: (displayName: string | null) => void
 }) {
   const [view, setView] = useState<DashboardView>('journal')
   const [mealReturn, setMealReturn] = useState<{ token: string; dish: Dish } | null>(null)
   const [recipesVisited, setRecipesVisited] = useState(false)
+  const [profileVisited, setProfileVisited] = useState(false)
   const [cookRequest, setCookRequest] = useState<CookRequest | null>(null)
   const [recipeVisit, setRecipeVisit] = useState<{
     id: string
@@ -34,6 +38,7 @@ export default function Dashboard({
   }
   const navigate = (nextView: DashboardView) => {
     if (nextView === 'recipes') setRecipesVisited(true)
+    if (nextView === 'profile') setProfileVisited(true)
     setView(nextView)
   }
   const logout = async () => {
@@ -104,6 +109,11 @@ export default function Dashboard({
       {user.role === 'ADMIN' && (
         <div hidden={view !== 'accounts'}>
           <UserManagement setError={setError} />
+        </div>
+      )}
+      {profileVisited && (
+        <div hidden={view !== 'profile'}>
+          <Profile active={view === 'profile'} onChanged={onProfileChanged} />
         </div>
       )}
     </div>

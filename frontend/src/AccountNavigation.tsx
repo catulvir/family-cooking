@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
-import { BookOpen, ChevronDown, LogOut, Users } from 'lucide-react'
+import { BookOpen, ChevronDown, LogOut, Users, UserRound } from 'lucide-react'
 import type { CurrentUser } from './api/auth'
 
-export type DashboardView = 'journal' | 'recipes' | 'accounts'
+export type DashboardView = 'journal' | 'recipes' | 'accounts' | 'profile'
 
 export default function AccountNavigation({
   user,
@@ -35,7 +35,7 @@ export default function AccountNavigation({
   return (
     <>
       <div className="account-row">
-        <p className="intro">Signed in as {user.email}</p>
+        <p className="intro">Signed in as {user.displayName || user.email}</p>
         <section
           ref={accountDisclosure}
           className="account-disclosure"
@@ -54,6 +54,15 @@ export default function AccountNavigation({
             Account <ChevronDown size={18} aria-hidden="true" />
           </button>
           <section id="account-actions" aria-labelledby="account-button" hidden={!accountOpen}>
+            <button
+              className="secondary"
+              onKeyDown={handleAccountKeyDown}
+              onBlur={handleAccountBlur}
+              aria-current={view === 'profile' ? 'page' : undefined}
+              onClick={() => navigate('profile')}
+            >
+              <UserRound size={20} aria-hidden="true" /> Profile
+            </button>
             {user.role === 'ADMIN' && (
               <button
                 className="secondary"

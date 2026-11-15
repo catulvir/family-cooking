@@ -23,7 +23,7 @@ class DishRecipeMigrationTest : PostgresTestSupport() {
         jdbc.update("INSERT INTO $schema.dishes (id, name, prepared_on, location, notes, created_by, created_at, updated_at) VALUES ('$dishId', 'Original meal', '2026-11-13', 'Home', 'Notes', '$userId', now(), now())")
         fun snapshot(table: String) = jdbc.queryForObject("SELECT (to_jsonb(t) - 'recipe_id')::text FROM $schema.$table t", String::class.java)
         val before = listOf("app_users", "recipes", "dishes").associateWith(::snapshot)
-        val upgraded = Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema).load()
+        val upgraded = Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema).target("7").load()
         assertEquals(1, upgraded.migrate().migrationsExecuted); upgraded.validate()
         assertEquals(before, before.keys.associateWith(::snapshot))
         assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM $schema.dishes WHERE recipe_id IS NULL", Int::class.java))
